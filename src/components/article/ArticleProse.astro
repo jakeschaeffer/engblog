@@ -1,0 +1,28 @@
+---
+/**
+ * ArticleProse — the typographic wrapper around rendered MDX.
+ *
+ * Why this component has no `<style>` block:
+ *
+ * Astro scoped styles are applied by adding a hash class to the elements the
+ * component itself renders. MDX content arrives through `<slot />` already
+ * rendered by *another* component, so it never receives this component's scope
+ * hash and scoped selectors would not match it. The prose rules therefore live
+ * in `src/styles/global.css` under "12. PROSE" (and "13. CODE"), which is the
+ * only place they can reach slotted markup. Extend that section rather than
+ * adding styles here.
+ *
+ * The measure (~68ch), heading rhythm, list/blockquote/table treatment and
+ * code-block overflow all come from `.prose` in that file.
+ */
+export interface Props {
+  /** Extra classes for page-level layout hooks (grid placement, etc.). */
+  class?: string | undefined;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div class:list={['prose', className]}>
+  <slot />
+</div>

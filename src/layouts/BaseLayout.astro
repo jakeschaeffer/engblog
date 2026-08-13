@@ -1,0 +1,145 @@
+---
+/**
+ * BaseLayout — the document shell for every page on the site.
+ *
+ * Responsibilities:
+ *   - <html>/<head> boilerplate: charset, viewport, title, description
+ *   - canonical URL, Open Graph, Twitter card, favicon, RSS alternate
+ *   - robots policy (see "Indexing rule" below)
+ *   - skip link -> <main id="main" tabindex="-1">
+ *   - header/footer chrome, overridable per page via named slots
+ *
+ * Slots:
+ *   - "head"   : page-specific <head> tags (JSON-LD, preloads, extra meta)
+ *   - "header" : replaces the default SiteHeader
+ *   - default  : page content, rendered inside <main>
+ *   - "footer" : replaces the default SiteFooter
+ *
+ * Indexing rule:
+ *   Only the production Vercel deployment is indexable. Preview deployments,
+ *   branch deploys and local builds emit `noindex, nofollow`, keyed off
+ *   `VERCEL_ENV === 'production'` (see `IS_PRODUCTION_DEPLOY` in
+ *   `@/lib/site`). A page may additionally opt out with `noindex`.
+ */
+import SiteFooter from '@/components/chrome/SiteFooter.astro';
+import SiteHeader from '@/components/chrome/SiteHeader.astro';
+import {
+  DEFAULT_OG_IMAGE,
+  IS_PRODUCTION_DEPLOY,
+  RSS_PATH,
+  SITE_DESCRIPTION,
+  SITE_LANG,
+  SITE_NAME,
+  absoluteUrl,
+} from '@/lib/site';
+
+import '@/styles/global.css';
+
+export interface Props {
+  /** Page title. Rendered as `<title>` and as the OG/Twitter title. */
+  title: string;
+  /** Meta description. Falls back to the site description if empty. */
+  description?: string | undefined;
+  /**
+   * Canonical URL. Absolute URLs are used as-is; site-relative paths are
+   * resolved against SITE_URL. Defaults to the current page's URL.
+   */
+  canonical?: string | undefined;
+  /** Social preview image, site-relative or absolute. */
+  ogImage?: string | undefined;
+  /** Open Graph object type. */
+  ogType?: 'website' | 'article';
+  /** Force `noindex, nofollow` regardless of deploy environment. */
+  noindex?: boolean;
+  /** Extra classes on <body>, for page-level layout hooks. */
+  bodyClass?: string | undefined;
+}
+
+const {
+  title,
+  description,
+  canonical,
+  ogImage,
+  ogType = 'website',
+  noindex = false,
+  bodyClass,
+} = Astro.props;
+
+const metaDescription = description?.trim() ? description : SITE_DESCRIPTION;
+
+// Astro.site is always defined because astro.config.mjs sets `site` from
+// SITE_URL with a localhost fallback, so `new URL(..., Astro.site)` is safe.
+const canonicalUrl = canonical
+  ? new URL(canonical, Astro.site ?? Astro.url).toString()
+  : new URL(Astro.url.pathname, Astro.site ?? Astro.url).toString();
+
+const socialImageUrl = absoluteUrl(ogImage ?? DEFAULT_OG_IMAGE);
+
+// Non-production deploys are never indexable.
+const robots = noindex || !IS_PRODUCTION_DEPLOY ? 'noindex, nofollow' : 'index, follow';
+
+// Documents the full page title format in one place.
+const documentTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
+---
+
+<!doctype html>
+<html lang={SITE_LANG}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{documentTitle}</title>
+    <meta name="description" content={metaDescription} />
+    <meta name="robots" content={robots} />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={`${SITE_NAME} — RSS`}
+      href={absoluteUrl(RSS_PATH)}
+    />
+
+    {/* Open Graph */}
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={metaDescription} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImageUrl} />
+    <meta property="og:locale" content="en_US" />
+
+    {/* Twitter / X */}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={metaDescription} />
+    <meta name="twitter:image" content={socialImageUrl} />
+
+    {/* Page-specific head content: JSON-LD, preloads, article meta. */}
+    <slot name="head" />
+  </head>
+
+  <body class={bodyClass}>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <slot name="header">
+      <SiteHeader />
+    </slot>
+
+    {
+      /*
+      `tabindex="-1"` makes <main> a valid target for the skip link so that
+      focus — not just the scroll position — moves into the content.
+    */
+    }
+    <main id="main" class="site-main" tabindex="-1">
+      <slot />
+    </main>
+
+    <slot name="footer">
+      <SiteFooter />
+    </slot>
+  </body>
+</html>

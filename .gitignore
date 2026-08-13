@@ -1,0 +1,39 @@
+# dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# build output
+dist/
+.output/
+
+# astro
+.astro/
+
+# deploy
+.vercel/
+
+# env — commit only the documented example
+.env
+.env.*
+!.env.example
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+*.log
+
+# test / coverage
+coverage/
+.vitest/
+
+# editors & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp

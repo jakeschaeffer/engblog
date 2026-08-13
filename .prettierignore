@@ -1,0 +1,11 @@
+dist/
+.astro/
+node_modules/
+coverage/
+package-lock.json
+
+# Verbatim port of an external author's published article. Prettier's Markdown
+# printer normalises emphasis (`*word*` -> `_word_`), list bullets and line
+# wrapping, which would silently edit someone else's prose. The body of this
+# file must stay byte-identical to the original; frontmatter is ours to change.
+src/content/posts/your-evals-have-a-rotten-tomatoes-problem.mdx

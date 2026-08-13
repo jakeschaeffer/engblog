@@ -1,0 +1,159 @@
+---
+/**
+ * TableOfContents — built from the `headings` array returned by `render()`.
+ *
+ * Anchor targets: Astro's markdown pipeline runs `rehypeHeadingIds` by default
+ * (`@astrojs/markdown-remark`, and `@astrojs/mdx` re-adds it for MDX), which
+ * stamps a github-slugger `id` on every heading and reports that same value as
+ * `heading.slug`. So `#slug` always resolves — no rehype-slug plugin needed in
+ * `astro.config.mjs`, and nothing here has to generate ids itself.
+ *
+ * No client JavaScript: no scroll-spy, no collapsible disclosure, no smooth
+ * scrolling beyond the global `scroll-behavior` (which is itself disabled
+ * under `prefers-reduced-motion`).
+ *
+ * Nesting: the shallowest qualifying depth becomes the top level and anything
+ * deeper is nested one level under the entry it follows. That covers the
+ * default 2–3 range exactly, and degrades sensibly (indent by `data-depth`
+ * rather than deeper `<ol>` trees) if a caller widens the range — Astro
+ * components cannot recurse into themselves cleanly, and an arbitrarily deep
+ * tree is not a thing a reader wants in a page contents list anyway.
+ */
+import type { MarkdownHeading } from 'astro';
+
+export interface Props {
+  headings: MarkdownHeading[];
+  /** Shallowest heading level to include. Default 2 (`<h2>`). */
+  minDepth?: number;
+  /** Deepest heading level to include. Default 3 (`<h3>`). */
+  maxDepth?: number;
+}
+
+const { headings, minDepth = 2, maxDepth = 3 } = Astro.props;
+
+const included = headings.filter(
+  (heading) => heading.depth >= minDepth && heading.depth <= maxDepth && heading.slug !== '',
+);
+
+/**
+ * A contents list with one entry is noise: it tells the reader nothing they
+ * cannot see on screen. Render nothing at all below two entries.
+ */
+const hasEnoughHeadings = included.length >= 2;
+
+interface TocGroup {
+  readonly heading: MarkdownHeading;
+  readonly children: MarkdownHeading[];
+}
+
+const topDepth = hasEnoughHeadings ? Math.min(...included.map((heading) => heading.depth)) : 0;
+
+const groups: TocGroup[] = [];
+for (const heading of included) {
+  // A deeper heading that appears before any top-level one is promoted rather
+  // than dropped, so no heading can go missing from the list.
+  if (heading.depth === topDepth || groups.length === 0) {
+    groups.push({ heading, children: [] });
+  } else {
+    groups[groups.length - 1]?.children.push(heading);
+  }
+}
+---
+
+{
+  hasEnoughHeadings && (
+    <nav class="toc" aria-labelledby="toc-title">
+      <h2 class="toc__title" id="toc-title">
+        On this page
+      </h2>
+
+      <ol class="toc__list">
+        {groups.map((group) => (
+          <li class="toc__item">
+            <a class="toc__link" href={`#${group.heading.slug}`}>
+              {group.heading.text}
+            </a>
+
+            {group.children.length > 0 && (
+              <ol class="toc__list toc__list--nested">
+                {group.children.map((child) => (
+                  <li class="toc__item" data-depth={child.depth}>
+                    <a class="toc__link" href={`#${child.slug}`}>
+                      {child.text}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  )
+}
+
+<style>
+  .toc {
+    /* The margin lives on the nav itself, not on a wrapper in the layout, so
+     * that a post with no contents list leaves no gap behind. */
+    margin-block-end: var(--space-lg);
+    padding: var(--space-sm) var(--space-md);
+    border: var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+
+  .toc__title {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-text-subtle);
+  }
+
+  .toc__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .toc > .toc__list {
+    margin-block-start: var(--space-2xs);
+  }
+
+  .toc__list--nested {
+    padding-inline-start: var(--space-sm);
+    border-inline-start: var(--border);
+    margin-block-start: var(--space-3xs);
+  }
+
+  /* Extra indent for the (unusual) case of a caller widening `maxDepth`. */
+  .toc__item[data-depth='4'] {
+    padding-inline-start: var(--space-2xs);
+  }
+
+  .toc__item[data-depth='5'],
+  .toc__item[data-depth='6'] {
+    padding-inline-start: var(--space-sm);
+  }
+
+  .toc__item + .toc__item {
+    margin-block-start: var(--space-3xs);
+  }
+
+  .toc__link {
+    display: inline-block;
+    padding-block: var(--space-3xs);
+    color: var(--color-text-muted);
+    text-decoration: none;
+    /* Long headings wrap inside the column instead of widening it. */
+    overflow-wrap: break-word;
+  }
+
+  .toc__link:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+  }
+</style>

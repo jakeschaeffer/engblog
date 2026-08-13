@@ -1,0 +1,189 @@
+---
+/**
+ * PostLayout — the article shell.
+ *
+ * Composes the article components around rendered MDX and takes care of the
+ * per-post <head> concerns that the components should not know about:
+ *
+ *   - canonical URL: `data.canonicalUrl` when the post was first published
+ *     elsewhere, otherwise this site's own URL for the slug
+ *   - `og:type: article` plus the article-specific OG tags
+ *   - JSON-LD `Article` structured data, built by
+ *     `@/lib/structured-data` so the shape is unit-testable
+ *
+ * The page route is responsible for fetching the post, rendering its MDX and
+ * passing `related` / `adjacent` in — this layout does no data fetching, so it
+ * stays usable from any route.
+ */
+import type { MarkdownHeading } from 'astro';
+import type { CollectionEntry } from 'astro:content';
+
+import ArticleFooter from '@/components/article/ArticleFooter.astro';
+import ArticleHeader from '@/components/article/ArticleHeader.astro';
+import ArticleProse from '@/components/article/ArticleProse.astro';
+import TableOfContents from '@/components/article/TableOfContents.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import type { AdjacentPosts } from '@/lib/post-utils';
+import { toISODateTime } from '@/lib/post-utils';
+import { DEFAULT_OG_IMAGE, absoluteUrl, postPath } from '@/lib/site';
+import { buildArticleStructuredData, serializeStructuredData } from '@/lib/structured-data';
+
+type Post = CollectionEntry<'posts'>;
+
+export interface Props {
+  /** The post entry being rendered. */
+  post: Post;
+  /** Headings returned by `render(post)`, used to build the table of contents. */
+  headings: MarkdownHeading[];
+  /** Related posts, from `getRelatedPosts()`. */
+  related?: Post[];
+  /** Older/newer neighbours, from `getAdjacentPosts()`. */
+  adjacent?: AdjacentPosts<Post>;
+}
+
+const { post, headings, related = [], adjacent } = Astro.props;
+const { data } = post;
+
+/**
+ * `ArticleFooter` takes the two neighbours as separate props rather than the
+ * `AdjacentPosts` record, so the direction convention is spelled out at the
+ * call site: `prev` is the *older* post, `next` is the *newer* one (see
+ * `selectAdjacentPosts` in `@/lib/post-utils`).
+ */
+const prev = adjacent?.prev ?? null;
+const next = adjacent?.next ?? null;
+
+/**
+ * Canonical URL.
+ *
+ * If the post declares `canonicalUrl` it was first published elsewhere and
+ * that URL wins; otherwise the canonical is this site's own post URL. Either
+ * way it is absolute.
+ */
+const ownUrl = absoluteUrl(postPath(post.id));
+const canonicalUrl = data.canonicalUrl ?? ownUrl;
+
+const ogImage = data.ogImage ?? data.heroImage?.src ?? DEFAULT_OG_IMAGE;
+
+const structuredData = serializeStructuredData(
+  buildArticleStructuredData({
+    title: data.title,
+    description: data.description,
+    publishedAt: data.publishedAt,
+    updatedAt: data.updatedAt,
+    authors: data.authors,
+    tags: data.tags,
+    url: canonicalUrl,
+    image: ogImage,
+  }),
+);
+---
+
+<BaseLayout
+  title={data.title}
+  description={data.description}
+  canonical={canonicalUrl}
+  ogImage={ogImage}
+  ogType="article"
+  noindex={data.draft}
+>
+  <Fragment slot="head">
+    <meta property="article:published_time" content={toISODateTime(data.publishedAt)} />
+    {
+      data.updatedAt && (
+        <meta property="article:modified_time" content={toISODateTime(data.updatedAt)} />
+      )
+    }
+    {data.authors.map((author) => <meta property="article:author" content={author.name} />)}
+    {data.tags.map((tag) => <meta property="article:tag" content={tag} />)}
+    <script type="application/ld+json" is:inline set:html={structuredData} />
+  </Fragment>
+
+  <article class="post">
+    <div class="post__lede">
+      <ArticleHeader post={post} />
+    </div>
+
+    {
+      /*
+      DOM order is contents-then-body, which is the reading order on a narrow
+      viewport and a sensible tab order everywhere. On a wide viewport the two
+      are placed into the same grid row with the prose first visually and the
+      contents list in the right-hand column — CSS placement only, no JS and no
+      duplicated markup.
+    */
+    }
+    <div class="post__body">
+      <div class="post__toc">
+        <TableOfContents headings={headings} />
+      </div>
+      <div class="post__prose">
+        <ArticleProse>
+          <slot />
+        </ArticleProse>
+      </div>
+    </div>
+
+    <div class="post__end">
+      <ArticleFooter related={related} prev={prev} next={next} />
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  /* This is its own container rather than `.container` + a width modifier: the
+   * column width changes at the wide breakpoint (see below), and relying on a
+   * scoped rule to beat a global `.container` rule of equal specificity would
+   * depend on stylesheet order. */
+  .post {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+    padding-block: var(--space-xl);
+    /* Narrow and mid viewports: a single reading column. */
+    max-width: calc(var(--width-content) + 2 * var(--gutter));
+  }
+
+  /* The contents list carries its own bottom margin (see TableOfContents), so
+   * when it renders nothing this wrapper collapses to zero height instead of
+   * leaving a gap. */
+
+  /* Wide viewports: the reading column keeps its width and the contents list
+   * moves into the margin beside it. The container grows by exactly the width
+   * of that column plus its gutter, so the prose never shifts sideways as the
+   * layout changes. */
+  @media (min-width: 64rem) {
+    .post {
+      max-width: calc(
+        var(--width-content) + var(--width-toc) + var(--space-xl) + 2 * var(--gutter)
+      );
+    }
+
+    .post__lede,
+    .post__end {
+      max-width: var(--width-content);
+    }
+
+    .post__body {
+      display: grid;
+      grid-template-columns: minmax(0, var(--width-content)) var(--width-toc);
+      column-gap: var(--space-xl);
+      align-items: start;
+    }
+
+    .post__prose {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .post__toc {
+      grid-column: 2;
+      grid-row: 1;
+      position: sticky;
+      inset-block-start: var(--space-md);
+      max-height: calc(100vh - 2 * var(--space-md));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+  }
+</style>

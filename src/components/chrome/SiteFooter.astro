@@ -1,0 +1,70 @@
+---
+/**
+ * SiteFooter — the `contentinfo` landmark.
+ *
+ * Colophon and two links. No newsletter form, no social icons, no analytics
+ * beacon: nothing here should be a reason for a reader to leave the article
+ * they just finished.
+ */
+import { BASE_PATH, RSS_PATH, SITE_NAME } from '@/lib/site';
+
+// UTC so a build machine's timezone can never render a different year than CI.
+const year = new Date().getUTCFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container site-footer__inner">
+    <p class="site-footer__colophon">
+      &copy; {year}
+      {SITE_NAME}
+    </p>
+
+    <nav class="site-footer__nav" aria-label="Footer">
+      <ul class="site-footer__list">
+        <li><a href={BASE_PATH}>Engineering</a></li>
+        <li><a href={RSS_PATH}>RSS feed</a></li>
+      </ul>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-block-start: var(--space-2xl);
+    border-block-start: var(--border);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .site-footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2xs) var(--space-md);
+    padding-block: var(--space-lg);
+  }
+
+  .site-footer__colophon {
+    margin: 0;
+  }
+
+  .site-footer__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-md);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .site-footer__list a {
+    color: var(--color-text-muted);
+    text-decoration-color: var(--color-border-strong);
+  }
+
+  .site-footer__list a:hover {
+    color: var(--color-accent-hover);
+    text-decoration-color: currentcolor;
+  }
+</style>

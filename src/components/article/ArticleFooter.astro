@@ -1,0 +1,227 @@
+---
+/**
+ * ArticleFooter — what a reader sees after the last paragraph.
+ *
+ * Direction convention comes from `src/lib/post-utils.ts#selectAdjacentPosts`:
+ * **`prev` is the older post and `next` is the newer post.** The labels here
+ * say "Older" and "Newer" rather than "Previous"/"Next" so the direction is
+ * unambiguous no matter which way the reader assumed time runs.
+ *
+ * The related-posts section is omitted entirely when there is nothing to show
+ * — an empty "Related posts" heading is worse than no heading.
+ */
+import type { CollectionEntry } from 'astro:content';
+
+import { formatDate, toISODateTime } from '@/lib/post-utils';
+import { BASE_PATH, postPath } from '@/lib/site';
+
+type Post = CollectionEntry<'posts'>;
+
+export interface Props {
+  related: Post[];
+  /** The next *older* post, or null at the tail of the archive. */
+  prev: Post | null;
+  /** The next *newer* post, or null at the head of the archive. */
+  next: Post | null;
+}
+
+const { related, prev, next } = Astro.props;
+
+const hasRelated = related.length > 0;
+const hasAdjacent = prev !== null || next !== null;
+---
+
+<footer class="article-footer">
+  {
+    hasRelated && (
+      <section class="related" aria-labelledby="related-heading">
+        <h2 class="related__heading" id="related-heading">
+          Related posts
+        </h2>
+
+        <ul class="related__list">
+          {related.map((post) => (
+            <li class="related__item">
+              <h3 class="related__title">
+                <a href={postPath(post.id)}>{post.data.title}</a>
+              </h3>
+              <p class="related__description">{post.data.description}</p>
+              <p class="related__date">
+                <time datetime={toISODateTime(post.data.publishedAt)}>
+                  {formatDate(post.data.publishedAt)}
+                </time>
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  {
+    hasAdjacent && (
+      <nav class="post-nav" aria-label="More engineering posts">
+        {prev && (
+          <a class="post-nav__link post-nav__link--older" href={postPath(prev.id)}>
+            <span class="post-nav__direction">
+              <span aria-hidden="true">&larr;</span> Older post
+            </span>
+            <span class="post-nav__title">{prev.data.title}</span>
+          </a>
+        )}
+
+        {next && (
+          <a class="post-nav__link post-nav__link--newer" href={postPath(next.id)}>
+            <span class="post-nav__direction">
+              Newer post <span aria-hidden="true">&rarr;</span>
+            </span>
+            <span class="post-nav__title">{next.data.title}</span>
+          </a>
+        )}
+      </nav>
+    )
+  }
+
+  <p class="article-footer__back">
+    <a href={BASE_PATH}>
+      <span aria-hidden="true">&larr;</span> Back to Engineering
+    </a>
+  </p>
+</footer>
+
+<style>
+  .article-footer {
+    margin-block-start: var(--space-xl);
+    padding-block-start: var(--space-lg);
+    border-block-start: var(--border);
+  }
+
+  .article-footer > * + * {
+    margin-block-start: var(--space-xl);
+  }
+
+  /* ---------------------------------------------------------------- related */
+
+  .related__heading {
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-text-subtle);
+  }
+
+  .related__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: var(--space-md);
+    margin-block-start: var(--space-md);
+    padding: 0;
+    list-style: none;
+  }
+
+  .related__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+    padding-block-start: var(--space-2xs);
+    border-block-start: var(--border-width-thick) solid var(--color-border);
+  }
+
+  .related__title {
+    font-size: var(--text-lg);
+    line-height: var(--leading-snug);
+  }
+
+  .related__title a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .related__title a:hover {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+  }
+
+  .related__description {
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    text-wrap: pretty;
+  }
+
+  .related__date {
+    margin-block-start: auto;
+    padding-block-start: var(--space-2xs);
+    color: var(--color-text-subtle);
+    font-size: var(--text-xs);
+  }
+
+  /* -------------------------------------------------------------- prev/next */
+
+  .post-nav {
+    display: grid;
+    gap: var(--space-sm);
+  }
+
+  @media (min-width: 40rem) {
+    .post-nav {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    /* Keep "Newer" on the right even when there is no "Older" to its left. */
+    .post-nav__link--newer {
+      grid-column: 2;
+      text-align: end;
+    }
+  }
+
+  .post-nav__link {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+    padding: var(--space-sm) var(--space-md);
+    border: var(--border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    text-decoration: none;
+    transition: border-color var(--duration-base) var(--easing);
+  }
+
+  .post-nav__link:hover {
+    border-color: var(--color-border-strong);
+    color: var(--color-text);
+  }
+
+  .post-nav__direction {
+    color: var(--color-text-subtle);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .post-nav__title {
+    font-weight: var(--weight-medium);
+    line-height: var(--leading-snug);
+    text-wrap: pretty;
+  }
+
+  .post-nav__link:hover .post-nav__title {
+    text-decoration: underline;
+  }
+
+  /* ------------------------------------------------------------------- back */
+
+  .article-footer__back {
+    font-size: var(--text-sm);
+  }
+
+  .article-footer__back a {
+    color: var(--color-text-muted);
+    text-decoration-color: var(--color-border-strong);
+  }
+
+  .article-footer__back a:hover {
+    color: var(--color-accent-hover);
+    text-decoration-color: currentcolor;
+  }
+</style>

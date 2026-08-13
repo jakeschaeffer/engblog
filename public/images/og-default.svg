@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Ode Engineering">
+  <!--
+    SOURCE FILE for the default Open Graph card. Not referenced by the site:
+    social crawlers (X, LinkedIn, Slack, Facebook, iMessage) do not render an
+    SVG og:image, so `DEFAULT_OG_IMAGE` in src/lib/site.ts points at the PNG
+    rendered from this file. Edit this, then regenerate:
+
+      node -e "require('sharp')('public/images/og-default.svg',{density:96}).resize(1200,630).flatten({background:'#fdfdfc'}).png({compressionLevel:9}).toFile('public/images/og-default.png')"
+
+    See docs/images.md. Colours are lifted from src/styles/global.css section 1
+    (--color-bg, --color-accent, --color-text, --color-text-muted); keep them in
+    sync by hand — an SVG in public/ cannot read CSS custom properties.
+
+    Light-only on purpose: OG cards are composited by third parties that do not
+    respect prefers-color-scheme.
+  -->
+  <rect width="1200" height="630" fill="#fdfdfc" />
+  <rect x="0" y="0" width="1200" height="10" fill="#1f4ed8" />
+
+  <g transform="translate(96 232)">
+    <circle cx="36" cy="36" r="30" fill="none" stroke="#17181c" stroke-width="10" />
+    <path d="M58 6v60" stroke="#17181c" stroke-width="10" />
+  </g>
+
+  <text
+    x="96"
+    y="392"
+    font-family="Helvetica, Arial, sans-serif"
+    font-size="76"
+    font-weight="700"
+    fill="#17181c"
+  >Ode Engineering</text>
+
+  <text
+    x="96"
+    y="452"
+    font-family="Helvetica, Arial, sans-serif"
+    font-size="32"
+    fill="#5b5f68"
+  >Engineering notes, architecture decisions, and build logs.</text>
+
+  <rect x="96" y="510" width="120" height="4" fill="#1f4ed8" />
+</svg>

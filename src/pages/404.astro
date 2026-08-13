@@ -1,0 +1,60 @@
+---
+/**
+ * `/404` — the not-found page.
+ *
+ * `noindex` is set explicitly rather than left to the deploy-environment rule
+ * in BaseLayout: this page must never be indexed, including on production,
+ * where every other page is indexable.
+ *
+ * `astro.config.mjs` also excludes `/404` from the sitemap.
+ */
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { BASE_PATH } from '@/lib/site';
+---
+
+<BaseLayout
+  title="Page not found"
+  description="That page does not exist. It may have moved, or the link may be wrong."
+  noindex
+>
+  <div class="container container--content notfound">
+    <h1 class="notfound__title">Page not found</h1>
+
+    <p class="notfound__body">
+      That URL does not match anything we publish. The post may have been renamed, or the link that
+      brought you here may be incomplete.
+    </p>
+
+    <ul class="notfound__links">
+      <li><a href={BASE_PATH}>Browse all posts</a></li>
+      <li><a href="/">Go to the home page</a></li>
+    </ul>
+  </div>
+</BaseLayout>
+
+<style>
+  .notfound {
+    padding-block: var(--space-2xl);
+  }
+
+  .notfound__title {
+    font-size: var(--text-3xl);
+  }
+
+  .notfound__body {
+    max-width: var(--measure-narrow);
+    margin-block-start: var(--space-md);
+    color: var(--color-text-muted);
+    line-height: var(--leading-relaxed);
+    text-wrap: pretty;
+  }
+
+  .notfound__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-md);
+    margin-block-start: var(--space-lg);
+    padding: 0;
+    list-style: none;
+  }
+</style>
