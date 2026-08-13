@@ -54,17 +54,17 @@ visible there.
 
 Every script in `package.json`:
 
-| Script              | Command                                          | What it does / when you run it                                                                                                   |
-| ------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`       | `astro dev`                                      | Dev server on `http://localhost:4321`, HMR, drafts visible. Your default loop.                                                   |
-| `npm run build`     | `astro build`                                    | Production static build into `dist/`. Drafts excluded. This is what Vercel runs.                                                 |
-| `npm run preview`   | `astro preview`                                  | Serves the already-built `dist/` locally. Use it to check the real production output (no drafts, no dev-only behaviour).         |
-| `npm run typecheck` | `tsc --noEmit`                                   | TypeScript only. Fast. Run while working on `src/lib/` or a `.tsx` island.                                                       |
-| `npm run check`     | `astro check`                                    | Astro-aware diagnostics: `.astro` component props, template types, content-collection schema. Catches things `tsc` alone cannot. |
-| `npm run lint`      | `eslint .`                                       | ESLint: typescript-eslint, `eslint-plugin-astro`, and the jsx-a11y accessibility rulesets. See section 11.                       |
-| `npm run format`    | `prettier --write .`                             | Formats in place, including `.astro` via `prettier-plugin-astro`.                                                                |
-| `npm run test`      | `vitest run`                                     | Unit tests over `src/**/*.test.ts` (pure logic only — see `vitest.config.ts`).                                                   |
-| `npm run verify`    | all of the above except `dev`/`preview`/`format` | `lint && typecheck && check && test && build`. Run before pushing; it is what CI runs.                                           |
+| Script              | Command                                          | What it does / when you run it                                                                                                                                                                                 |
+| ------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`       | `astro dev`                                      | Dev server on `http://localhost:4321`, HMR, drafts visible. Your default loop.                                                                                                                                 |
+| `npm run build`     | `astro build`                                    | Production static build into `dist/`. Drafts excluded. This is what Vercel runs.                                                                                                                               |
+| `npm run preview`   | `astro preview`                                  | Serves the already-built `dist/` locally. Use it to check the real production output (no drafts, no dev-only behaviour).                                                                                       |
+| `npm run typecheck` | `astro sync && tsc --noEmit`                     | TypeScript only. Fast. Run while working on `src/lib/` or a `.tsx` island. `astro sync` first because `tsc` needs the generated `.astro/types.d.ts`, which is gitignored and so is absent on a clean checkout. |
+| `npm run check`     | `astro check`                                    | Astro-aware diagnostics: `.astro` component props, template types, content-collection schema. Catches things `tsc` alone cannot.                                                                               |
+| `npm run lint`      | `eslint .`                                       | ESLint: typescript-eslint, `eslint-plugin-astro`, and the jsx-a11y accessibility rulesets. See section 11.                                                                                                     |
+| `npm run format`    | `prettier --write .`                             | Formats in place, including `.astro` via `prettier-plugin-astro`.                                                                                                                                              |
+| `npm run test`      | `vitest run`                                     | Unit tests over `src/**/*.test.ts` (pure logic only — see `vitest.config.ts`).                                                                                                                                 |
+| `npm run verify`    | all of the above except `dev`/`preview`/`format` | `lint && typecheck && check && test && build`. Run before pushing; it is what CI runs.                                                                                                                         |
 
 Environment: copy `.env.example` to `.env` if you need to override anything.
 Locally you generally do not — `SITE_URL` falls back to

@@ -34,7 +34,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # tsc --noEmit over src/ and the config files.
+      # astro sync (generates .astro/types.d.ts, which is gitignored and so is
+      # absent on a fresh checkout) then tsc --noEmit over src/ and the configs.
       - name: Typecheck
         run: npm run typecheck
 

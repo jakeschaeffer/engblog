@@ -480,7 +480,7 @@ Merging a draft to `main` is safe. Publishing is a one-line change: flip
 | `npm run build`     | Production static build into `dist/`. Drafts excluded.        |
 | `npm run preview`   | Serves the built `dist/` locally.                             |
 | `npm run lint`      | ESLint, including accessibility rules.                        |
-| `npm run typecheck` | `tsc --noEmit`.                                               |
+| `npm run typecheck` | `astro sync && tsc --noEmit`.                                 |
 | `npm run check`     | `astro check` — Astro diagnostics and content schema.         |
 | `npm run test`      | Vitest unit tests.                                            |
 | `npm run format`    | Prettier, writes in place.                                    |
