@@ -1,0 +1,49 @@
+---
+/**
+ * SiteHeader — the `banner` landmark.
+ *
+ * A wordmark and two links. It is deliberately not sticky and deliberately not
+ * positioned: the skip link is `position: absolute; z-index: var(--z-skip-link)`
+ * and must always paint above the chrome, so this element creates no stacking
+ * context that could cover it.
+ */
+import SiteNav from '@/components/chrome/SiteNav.astro';
+import { BASE_PATH, SITE_NAME } from '@/lib/site';
+---
+
+<header class="site-header">
+  <div class="container site-header__inner">
+    <a class="site-header__wordmark" href={BASE_PATH}>{SITE_NAME}</a>
+    <SiteNav />
+  </div>
+</header>
+
+<style>
+  .site-header {
+    border-block-end: var(--border);
+    background-color: var(--color-bg);
+  }
+
+  .site-header__inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2xs) var(--space-md);
+    padding-block: var(--space-sm);
+  }
+
+  .site-header__wordmark {
+    color: var(--color-text);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-tight);
+    text-decoration: none;
+  }
+
+  .site-header__wordmark:hover {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-decoration-color: var(--color-border-strong);
+  }
+</style>

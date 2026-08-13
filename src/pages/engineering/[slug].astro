@@ -1,0 +1,65 @@
+---
+/**
+ * `/engineering/[slug]` — the article route.
+ *
+ * ## Which post list drives the paths
+ *
+ * `getVisiblePosts()` — the only place in the codebase that should use it.
+ * It returns published posts *plus* drafts when `import.meta.env.DEV` is true,
+ * so a draft has a real, previewable page while you are writing it and no page
+ * at all in a production build. Nothing else is needed to keep drafts out of
+ * production: a page that is never built cannot appear in `dist/`, cannot be
+ * crawled, and cannot be picked up by `@astrojs/sitemap` (which reads the pages
+ * that were actually emitted). The `filter` in `astro.config.mjs` is a backstop,
+ * not the mechanism.
+ *
+ * Everything a reader could *navigate to* from here — related posts, prev/next —
+ * comes from `getPublishedPosts()` instead, so a draft is never linked even in
+ * dev, where it would be a link that 404s in production.
+ *
+ * ## The param name
+ *
+ * The param is `slug` (matching the filename) and its value is `post.id`,
+ * because `postPath()` in `@/lib/site` builds URLs from `post.id`. Card links,
+ * RSS links, the canonical URL in `PostLayout` and the emitted path therefore
+ * all agree by construction. With the `glob` loader, `id` is the file's path
+ * relative to the collection base minus the extension.
+ *
+ * ## MDX components
+ *
+ * No `components` mapping is passed to `<Content />`. Posts import the
+ * components they use explicitly in their own frontmatter (see AUTHORING.md
+ * §4), which keeps a post's dependencies visible in the post itself. A global
+ * mapping here would silently override the author's imports and make a post's
+ * rendering depend on a file it never mentions.
+ */
+import type { InferGetStaticPropsType } from 'astro';
+import { render } from 'astro:content';
+
+import PostLayout from '@/layouts/PostLayout.astro';
+import { getAdjacentPosts, getPublishedPosts, getRelatedPosts, getVisiblePosts } from '@/lib/posts';
+
+export async function getStaticPaths() {
+  const posts = await getVisiblePosts();
+
+  return posts.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+}
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
+
+const { post } = Astro.props;
+
+const { Content, headings } = await render(post);
+
+// Navigation targets come from the published list, never the visible one.
+const publishedPosts = await getPublishedPosts();
+const related = getRelatedPosts(post, publishedPosts);
+const adjacent = getAdjacentPosts(post, publishedPosts);
+---
+
+<PostLayout post={post} headings={headings} related={related} adjacent={adjacent}>
+  <Content />
+</PostLayout>

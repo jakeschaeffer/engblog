@@ -1,0 +1,762 @@
+/* =============================================================================
+ * Ode Engineering — global stylesheet and brand tokens
+ * =============================================================================
+ *
+ * >>> THIS FILE IS THE SINGLE SOURCE OF TRUTH FOR BRAND VALUES. <<<
+ *
+ * If you are aligning this site with the Webflow brand, you should only need
+ * to touch the `:root` block below. Everything downstream — layouts,
+ * components, article typography, code blocks — reads these custom properties
+ * and never hard-codes a colour, size, or radius.
+ *
+ * How to re-brand:
+ *   1. Replace the values in "1. COLOUR" with the Webflow palette. Keep the
+ *      token *names*; only change the values.
+ *   2. Replace `--font-sans` / `--font-mono` / `--font-serif` in "2. TYPE".
+ *      Any webfont must be self-hosted (add @font-face here) — we do not load
+ *      third-party font CDNs.
+ *   3. Adjust `--measure` if the brand's preferred line length differs.
+ *   4. Re-check the dark palette in section 9; it is a separate set of values,
+ *      not an automatic inversion.
+ *
+ * House rules for this site:
+ *   - No CSS framework. No utility classes. Component styles live in Astro
+ *     scoped <style> blocks and consume these tokens.
+ *   - No gradients, no decorative animation, no parallax. This is a reading
+ *     surface.
+ *   - Dark mode is `prefers-color-scheme` only: no toggle, no client JS, no
+ *     flash-of-wrong-theme, no localStorage.
+ *   - Every interactive element must have a visible :focus-visible ring.
+ *
+ * Scale conventions:
+ *   - Spacing is a modular scale in rem; use tokens, not magic numbers.
+ *   - Type scale is fluid via clamp() between a mobile and desktop bound.
+ * ========================================================================== */
+
+:root {
+  /* ---------------------------------------------------------------------
+   * 1. COLOUR  (light theme — the default)
+   *
+   * Neutral dark text on a light ground. `--color-bg` is very slightly warm
+   * rather than pure #fff so long-form reading is easier on the eye.
+   * Contrast targets: body text >= 12:1, muted text >= 4.5:1 on `--color-bg`.
+   * ------------------------------------------------------------------- */
+
+  /* Surfaces */
+  --color-bg: #fdfdfc; /* page background */
+  --color-surface: #ffffff; /* cards, callouts sitting on the page */
+  --color-surface-sunken: #f4f4f2; /* code blocks, wells */
+
+  /* Text */
+  --color-text: #17181c; /* body copy and headings */
+  --color-text-muted: #5b5f68; /* metadata, captions, bylines — 6.2:1 on --color-bg */
+  /* The quietest text we ship. Still real text, so it still has to clear
+   * 4.5:1 — measured 4.85:1 on --color-bg, 4.97:1 on --color-surface and
+   * 4.5:1 on --color-surface-sunken. Do not lighten it further. */
+  --color-text-subtle: #6b7079;
+  --color-text-inverse: #fdfdfc; /* text on --color-accent */
+
+  /* Lines */
+  --color-border: #e3e3df; /* hairlines, dividers, card edges */
+  --color-border-strong: #c9c9c3; /* emphasised edges, blockquote rule */
+
+  /* Accent — the one brand colour. Used for links, focus rings, and the
+   * active nav state. Deliberately a single hue: swap this and the site
+   * re-brands. */
+  --color-accent: #1f4ed8;
+  --color-accent-hover: #163bab;
+  --color-accent-subtle: #eaefff; /* accent background wash */
+
+  /* Status (used sparingly by Callout etc.) */
+  --color-success: #16704a;
+  --color-warning: #8a5a00;
+  --color-danger: #a52121;
+
+  /* Selection */
+  --color-selection-bg: #d8e2ff;
+  --color-selection-text: #17181c;
+
+  /* ---------------------------------------------------------------------
+   * 2. TYPE
+   *
+   * System font stacks by default — fast, no network request, no layout
+   * shift. Replace with the Webflow brand faces when they are self-hosted.
+   * ------------------------------------------------------------------- */
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    'Noto Sans', sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  /* Type scale — fluid between a 360px and a 1200px viewport.
+   * step -1 .. step 5. Body copy is --text-base. */
+  --text-xs: 0.75rem; /* 12px  */
+  --text-sm: 0.875rem; /* 14px  */
+  --text-base: clamp(1rem, 0.97rem + 0.15vw, 1.0625rem); /* 16 -> 17px */
+  --text-lg: clamp(1.125rem, 1.08rem + 0.2vw, 1.1875rem);
+  --text-xl: clamp(1.3rem, 1.2rem + 0.45vw, 1.5rem);
+  --text-2xl: clamp(1.55rem, 1.35rem + 0.85vw, 1.95rem);
+  --text-3xl: clamp(1.85rem, 1.5rem + 1.5vw, 2.6rem);
+  --text-4xl: clamp(2.2rem, 1.6rem + 2.6vw, 3.25rem);
+
+  /* Weights */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Line heights */
+  --leading-tight: 1.15; /* display headings */
+  --leading-snug: 1.3; /* sub-headings, card titles */
+  --leading-normal: 1.5; /* UI text */
+  --leading-relaxed: 1.7; /* long-form body copy */
+
+  /* Letter spacing */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+
+  /* ---------------------------------------------------------------------
+   * 3. SPACING  (modular, ratio ~1.5)
+   * ------------------------------------------------------------------- */
+  --space-3xs: 0.25rem; /*  4px */
+  --space-2xs: 0.5rem; /*  8px */
+  --space-xs: 0.75rem; /* 12px */
+  --space-sm: 1rem; /* 16px */
+  --space-md: 1.5rem; /* 24px */
+  --space-lg: 2.25rem; /* 36px */
+  --space-xl: 3.5rem; /* 56px */
+  --space-2xl: 5rem; /* 80px */
+  --space-3xl: 7.5rem; /* 120px */
+
+  /* ---------------------------------------------------------------------
+   * 4. MEASURE & LAYOUT
+   *
+   * `--measure` is the reading column. 68ch is the upper end of the
+   * comfortable range for 16-17px body text; do not exceed ~72ch.
+   * ------------------------------------------------------------------- */
+  --measure: 68ch; /* prose column */
+  --measure-narrow: 52ch; /* pull quotes, standfirst */
+  --width-content: 46rem; /* default page column */
+  --width-wide: 68rem; /* index grids, wide media */
+  --width-full: 80rem; /* site chrome max width */
+  --width-toc: 15rem; /* article contents column, wide viewports only */
+  --gutter: clamp(var(--space-sm), 4vw, var(--space-xl));
+
+  /* ---------------------------------------------------------------------
+   * 5. RADIUS, BORDER, SHADOW
+   *
+   * Restrained: small radii, hairline borders, one barely-there shadow.
+   * ------------------------------------------------------------------- */
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 999px;
+
+  --border-width: 1px;
+  --border-width-thick: 2px;
+  --border: var(--border-width) solid var(--color-border);
+  --border-strong: var(--border-width) solid var(--color-border-strong);
+
+  --shadow-sm: 0 1px 2px rgb(23 24 28 / 6%);
+  --shadow-md: 0 2px 8px rgb(23 24 28 / 8%);
+
+  /* ---------------------------------------------------------------------
+   * 6. FOCUS
+   *
+   * One ring definition, used everywhere. Never remove the outline without
+   * replacing it with something at least as visible.
+   * ------------------------------------------------------------------- */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-color: var(--color-accent);
+
+  /* ---------------------------------------------------------------------
+   * 7. MOTION
+   *
+   * Functional only (hover/focus feedback). All of it is disabled under
+   * prefers-reduced-motion in section 10.
+   * ------------------------------------------------------------------- */
+  --duration-fast: 100ms;
+  --duration-base: 160ms;
+  --easing: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* ---------------------------------------------------------------------
+   * 8. Z-INDEX
+   * ------------------------------------------------------------------- */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-header: 20;
+  --z-skip-link: 100;
+
+  color-scheme: light dark;
+}
+
+/* =============================================================================
+ * 9. DARK THEME
+ *
+ * Token overrides only. No component in this codebase should contain a
+ * `prefers-color-scheme` query — if a component needs to change in dark mode,
+ * that means a token is missing, so add the token here instead.
+ *
+ * These are hand-picked values, not inversions: the dark ground is a desatured
+ * near-black and the accent is lightened to hold contrast against it.
+ * ========================================================================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #14151a;
+    --color-surface: #1b1d23;
+    --color-surface-sunken: #101116;
+
+    --color-text: #e9eaee;
+    --color-text-muted: #a1a6b0;
+    /* Same rule as the light theme: 4.8:1 on --color-surface (the card and TOC
+     * ground), 5.3:1 on --color-bg. The previous value cleared 4.5:1 against
+     * the page but not against a card. */
+    --color-text-subtle: #838996;
+    --color-text-inverse: #14151a;
+
+    --color-border: #2b2e37;
+    --color-border-strong: #414653;
+
+    --color-accent: #8ab0ff;
+    --color-accent-hover: #adc6ff;
+    --color-accent-subtle: #1c2439;
+
+    --color-success: #5fc79b;
+    --color-warning: #e0b357;
+    --color-danger: #f08b8b;
+
+    --color-selection-bg: #2c3a5e;
+    --color-selection-text: #e9eaee;
+
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
+    --shadow-md: 0 2px 8px rgb(0 0 0 / 45%);
+  }
+}
+
+/* =============================================================================
+ * 10. RESET / BASE
+ *
+ * A small, opinionated reset. Not normalize.css — just the handful of
+ * defaults that are actively unhelpful.
+ * ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* `scroll-padding-top` keeps anchor targets clear of a sticky header. */
+  scroll-padding-top: var(--space-xl);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Smooth anchor scrolling, but never for users who asked for less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  font-synthesis-weight: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  /* Nothing may cause a horizontal scrollbar on the page itself. Wide content
+   * (code, tables, media) scrolls inside its own container instead. */
+  overflow-x: clip;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  font-weight: var(--weight-semibold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+
+p,
+ul,
+ol,
+dl,
+figure,
+blockquote,
+pre,
+table {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding-inline-start: 1.25em;
+}
+
+img,
+picture,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Media and embeds must never widen the page. */
+iframe,
+embed,
+object {
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+hr {
+  height: 0;
+  border: 0;
+  border-top: var(--border);
+  margin-block: var(--space-lg);
+}
+
+::selection {
+  background-color: var(--color-selection-bg);
+  color: var(--color-selection-text);
+}
+
+/* -----------------------------------------------------------------------------
+ * Links
+ * -------------------------------------------------------------------------- */
+a {
+  color: var(--color-accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.15em;
+  transition: color var(--duration-fast) var(--easing);
+}
+
+a:hover {
+  color: var(--color-accent-hover);
+}
+
+/* -----------------------------------------------------------------------------
+ * Focus
+ *
+ * `:focus-visible` only, so mouse users do not get rings on click, but every
+ * keyboard user always does. The `:focus:not(:focus-visible)` rule suppresses
+ * the UA default in browsers that would otherwise double up.
+ * -------------------------------------------------------------------------- */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius-xs);
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* `<main tabindex="-1">` is focused programmatically by the skip link; it must
+ * not draw a ring when it receives that programmatic focus. */
+main:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* =============================================================================
+ * 11. LAYOUT PRIMITIVES
+ * ========================================================================== */
+
+.container {
+  width: 100%;
+  max-width: var(--width-full);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.container--content {
+  max-width: calc(var(--width-content) + 2 * var(--gutter));
+}
+
+.container--wide {
+  max-width: calc(var(--width-wide) + 2 * var(--gutter));
+}
+
+/* The page body grows to push the footer down. */
+.site-main {
+  flex: 1 0 auto;
+}
+
+/* Visually hidden but available to assistive technology. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* -----------------------------------------------------------------------------
+ * Skip link
+ *
+ * Off-screen until focused, then pinned to the top-left. Must be the first
+ * focusable element in the document.
+ * -------------------------------------------------------------------------- */
+.skip-link {
+  position: absolute;
+  top: var(--space-2xs);
+  left: var(--space-2xs);
+  z-index: var(--z-skip-link);
+  padding: var(--space-2xs) var(--space-sm);
+  background-color: var(--color-surface);
+  color: var(--color-accent);
+  border: var(--border-width-thick) solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+
+  /* Hidden until focused. `translateY` rather than `display:none` so it stays
+   * focusable. */
+  transform: translateY(calc(-100% - var(--space-md)));
+  transition: transform var(--duration-base) var(--easing);
+}
+
+/* `:focus`, not `:focus-visible`: the skip link must appear for *any* way of
+ * focusing it, including a programmatic focus or a browser that does not treat
+ * the first Tab of a page as "visible" focus. */
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* =============================================================================
+ * 12. PROSE — long-form article typography
+ *
+ * Applied to the container that wraps rendered MDX. Uses the lobotomised owl
+ * for vertical rhythm so newly-added element types get sensible spacing for
+ * free, then tightens the specific pairs that matter.
+ * ========================================================================== */
+
+.prose {
+  max-width: var(--measure);
+  font-size: var(--text-lg);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text);
+  /* Prevent long URLs and identifiers from widening the column. */
+  overflow-wrap: break-word;
+}
+
+.prose > * + * {
+  margin-block-start: var(--space-md);
+}
+
+/* Headings get more space above than below, so they bind to the text they
+ * introduce rather than floating between blocks. */
+.prose > h2 {
+  margin-block-start: var(--space-xl);
+  font-size: var(--text-2xl);
+}
+
+.prose > h3 {
+  margin-block-start: var(--space-lg);
+  font-size: var(--text-xl);
+}
+
+.prose > h4 {
+  margin-block-start: var(--space-lg);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+}
+
+.prose > h2 + *,
+.prose > h3 + *,
+.prose > h4 + * {
+  margin-block-start: var(--space-sm);
+}
+
+/* Anchor links rendered next to headings by the TOC/slug plugin. */
+.prose :is(h2, h3, h4) > a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.prose :is(h2, h3, h4) > a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--color-accent);
+}
+
+.prose p {
+  text-wrap: pretty;
+}
+
+.prose :is(ul, ol) {
+  padding-inline-start: 1.4em;
+}
+
+.prose li + li {
+  margin-block-start: var(--space-2xs);
+}
+
+.prose li > :is(ul, ol) {
+  margin-block-start: var(--space-2xs);
+}
+
+.prose strong {
+  font-weight: var(--weight-semibold);
+}
+
+.prose blockquote {
+  margin-inline: 0;
+  padding-inline-start: var(--space-md);
+  border-inline-start: var(--border-width-thick) solid var(--color-border-strong);
+  color: var(--color-text-muted);
+  font-style: normal;
+}
+
+.prose figure figcaption {
+  margin-block-start: var(--space-2xs);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.prose img {
+  border-radius: var(--radius-md);
+  border: var(--border);
+}
+
+/* Tables scroll inside their own wrapper rather than widening the page. */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+/* A markdown table has no wrapper element of its own — the pipeline emits a
+ * bare `<table>` as a direct child of `.prose` — so the table *is* its own
+ * scroll container. `display: block` turns it into a block-level scroll box
+ * (rows still lay out as a table via anonymous table boxes) and
+ * `width: max-content` lets it size to its content up to the column width.
+ *
+ * Tables wrapped by an MDX component in `.table-scroll` are unaffected: they
+ * are no longer a direct child of `.prose`, so the wrapper does the scrolling
+ * and the table keeps `width: 100%`. */
+.prose > table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.prose :is(th, td) {
+  padding: var(--space-2xs) var(--space-xs);
+  border-bottom: var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.prose th {
+  font-weight: var(--weight-semibold);
+  color: var(--color-text);
+}
+
+/* Any element that can overflow gets its own scroll container. */
+.table-scroll,
+.prose .table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* =============================================================================
+ * 13. CODE
+ *
+ * Inline code is a quiet chip. Block code is a bordered, sunken panel that
+ * scrolls horizontally — the page itself must never scroll sideways.
+ *
+ * Markup emitted by our Shiki transformer (see astro.config.mjs):
+ *
+ *   <figure class="code-block" data-code-block>
+ *     <div class="code-block__lang" aria-hidden="true">ts</div>
+ *     <pre class="astro-code" data-language="ts" style="overflow-x:auto"> … </pre>
+ *   </figure>
+ *
+ * The label lives on the figure, not inside the scrolling <pre>, so it stays
+ * visible while wide code scrolls underneath it. It is `aria-hidden` because
+ * it is decorative metadata, not content.
+ * ========================================================================== */
+
+/* Inline code — but not code inside a highlighted block. */
+:not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 0.15em 0.35em;
+  background-color: var(--color-surface-sunken);
+  border: var(--border);
+  border-radius: var(--radius-sm);
+  /* Long identifiers may break rather than widen the column. */
+  overflow-wrap: break-word;
+}
+
+.code-block {
+  position: relative;
+  margin: 0;
+  border: var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-sunken);
+  /* Clip the <pre>'s square corners to the figure's rounded ones. */
+  overflow: hidden;
+}
+
+.code-block__lang {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  z-index: 1;
+  padding: var(--space-3xs) var(--space-2xs);
+  border-inline-start: var(--border);
+  border-block-end: var(--border);
+  border-end-start-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  color: var(--color-text-subtle);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* Shiki writes `overflow-x: auto` inline when `wrap: false`; we add padding,
+ * sizing and colour. `!important` is not needed — inline styles only cover
+ * `overflow-x`, `color` and `background-color`, and we override the latter two
+ * deliberately in the dark-theme block below. */
+.code-block > pre,
+pre.astro-code {
+  padding: var(--space-md) var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  tab-size: 2;
+  /* Belt and braces: even without Astro's inline style, scroll rather than
+   * wrap or overflow the page. */
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.code-block > pre > code,
+pre.astro-code > code {
+  display: block;
+  /* `min-width: max-content` makes the scroll container size to the longest
+   * line instead of truncating background colour on scrolled-to content. */
+  min-width: max-content;
+  font-family: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+/* Code blocks are keyboard-scrollable, so they must be focusable and show a
+ * ring. Components should render `<pre tabindex="0">` where possible; this
+ * rule makes the ring correct when they do. */
+.code-block > pre:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: calc(-1 * var(--focus-ring-width));
+}
+
+/* -----------------------------------------------------------------------------
+ * Shiki dual-theme wiring
+ *
+ * astro.config.mjs sets `themes: { light: 'github-light', dark: 'github-dark' }`
+ * with `defaultColor: 'light'`. Shiki therefore inlines the light colours as
+ * real values and exposes the dark ones as `--shiki-dark*` custom properties on
+ * each token. Swapping them under `prefers-color-scheme: dark` is the only way
+ * to override inline styles, which is why `!important` appears here — it is
+ * confined to this block.
+ * -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  .astro-code,
+  .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+    font-style: var(--shiki-dark-font-style) !important;
+    font-weight: var(--shiki-dark-font-weight) !important;
+    text-decoration: var(--shiki-dark-text-decoration) !important;
+  }
+}
+
+/* =============================================================================
+ * 14. REDUCED MOTION
+ *
+ * Global guard. Anything that animates anywhere in the site is neutralised
+ * here, so component authors do not have to remember to add their own query.
+ * ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* The skip link still needs to move into view; make it instant. */
+  .skip-link {
+    transition: none;
+  }
+}
+
+/* =============================================================================
+ * 15. PRINT
+ * ========================================================================== */
+@media print {
+  .skip-link,
+  .site-header,
+  .site-footer {
+    display: none;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .prose {
+    max-width: none;
+    font-size: 11pt;
+  }
+
+  .code-block {
+    break-inside: avoid;
+  }
+}

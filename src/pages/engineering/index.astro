@@ -1,0 +1,156 @@
+---
+/**
+ * `/engineering/` — the publication index. The canonical entry point for the
+ * whole site (`BASE_PATH`).
+ *
+ * ## Which post list this uses
+ *
+ * `getPublishedPosts()`, deliberately — **not** `getVisiblePosts()`. The index
+ * is navigation: every link on it must resolve in production. `getVisiblePosts()`
+ * exists for `getStaticPaths()`, where a draft *should* get a previewable page
+ * in dev; surfacing that draft in the index would mean the dev index and the
+ * production index disagree about what exists, and it would put a link on the
+ * page that 404s once deployed. So drafts are previewed by URL, never listed.
+ *
+ * ## Outline
+ *
+ *   h1  publication title
+ *   h2  "Latest posts"        (the section heading above the grid)
+ *   h3  each card title       (ArticleCard's default `headingLevel`)
+ *
+ * No level is skipped, so the cards take ArticleCard's default and this page
+ * never passes `headingLevel`.
+ */
+import ArticleCard from '@/components/article/ArticleCard.astro';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getPublishedPosts } from '@/lib/posts';
+import { RSS_PATH, SITE_DESCRIPTION, SITE_NAME } from '@/lib/site';
+
+const posts = await getPublishedPosts();
+const hasPosts = posts.length > 0;
+---
+
+<BaseLayout title={SITE_NAME} description={SITE_DESCRIPTION}>
+  <div class="container container--wide index">
+    <header class="index__masthead">
+      <h1 class="index__title">{SITE_NAME}</h1>
+      <p class="index__lede">{SITE_DESCRIPTION}</p>
+      <p class="index__feed">
+        <a href={RSS_PATH}>Subscribe via RSS</a>
+      </p>
+    </header>
+
+    <section class="index__section" aria-labelledby="latest">
+      <h2 class="index__section-title" id="latest">Latest posts</h2>
+
+      {
+        /*
+        Posts stay in publication order (newest first) and a featured post is
+        marked in place rather than hoisted to the top: the flag is emphasis,
+        not a separate rail, and re-ordering the list would make "latest" a lie.
+        `ArticleCard` gives a featured card a stronger edge, a "Featured" label
+        and a full-width grid row — see its `.card--featured` rules.
+      */
+      }
+      {
+        hasPosts ? (
+          <ul class="index__grid">
+            {posts.map((post) => (
+              <li class:list={['index__item', { 'index__item--featured': post.data.featured }]}>
+                <ArticleCard post={post} featured={post.data.featured} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div class="index__empty">
+            <p>
+              Nothing is published here yet. The first posts are being written — check back soon, or{' '}
+              <a href={RSS_PATH}>subscribe to the feed</a> and they will find you.
+            </p>
+            <p class="index__empty-note">
+              Writing for this publication? See <code>AUTHORING.md</code> in the repository for how
+              to add a post.
+            </p>
+          </div>
+        )
+      }
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .index {
+    padding-block: var(--space-xl) var(--space-2xl);
+  }
+
+  .index__masthead {
+    max-width: var(--measure);
+  }
+
+  .index__title {
+    font-size: var(--text-4xl);
+  }
+
+  .index__lede {
+    margin-block-start: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+    text-wrap: pretty;
+  }
+
+  .index__feed {
+    margin-block-start: var(--space-xs);
+    font-size: var(--text-sm);
+  }
+
+  .index__section {
+    margin-block-start: var(--space-xl);
+  }
+
+  .index__section-title {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  /* `auto-fill` + `minmax` is the whole responsive story: one column on a
+   * phone, as many ~20rem columns as fit after that. No breakpoints, and
+   * `minmax(min(20rem, 100%), 1fr)` guarantees a column can never be wider
+   * than the container, so the page cannot scroll sideways. */
+  .index__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+    gap: var(--space-md);
+    margin: 0;
+    margin-block-start: var(--space-md);
+    padding: 0;
+    list-style: none;
+  }
+
+  /* The <li> is the grid item, so the full-row span for a featured post has to
+   * live here as well as on the card itself. */
+  .index__item--featured {
+    grid-column: 1 / -1;
+  }
+
+  .index__empty {
+    max-width: var(--measure-narrow);
+    margin-block-start: var(--space-md);
+    padding: var(--space-lg) var(--space-md);
+    border: var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface);
+    color: var(--color-text-muted);
+    line-height: var(--leading-relaxed);
+    text-wrap: pretty;
+  }
+
+  .index__empty-note {
+    margin-block-start: var(--space-sm);
+    font-size: var(--text-sm);
+    color: var(--color-text-subtle);
+  }
+</style>

@@ -1,0 +1,210 @@
+---
+/**
+ * InteractiveDemoShell — the frame every interactive island in an article sits
+ * inside.
+ *
+ * Usage in MDX:
+ *
+ *   <InteractiveDemoShell
+ *     title="Request volume calculator"
+ *     description="Drag the slider to see what a sustained rate adds up to."
+ *     sourceHref="https://github.com/…/ExampleCalculator.tsx"
+ *     fallbackSummary="At 250 requests per second, a service handles about 21.6 million requests a day and 648 million a month."
+ *   >
+ *     <ExampleCalculator client:visible />
+ *   </InteractiveDemoShell>
+ *
+ * This component is presentational and ships **no client JavaScript of its
+ * own**. It renders a heading, an optional description, the island, a source
+ * link and — the part that actually matters — a fallback.
+ *
+ * ---------------------------------------------------------------------------
+ * THE FALLBACK STRATEGY
+ * ---------------------------------------------------------------------------
+ * Islands are mounted with `client:visible`. There are three ways a reader can
+ * end up without a working demo, and only one of them is "JavaScript is off":
+ *
+ *   1. JavaScript disabled or blocked by an extension.
+ *   2. The island's script fails — a chunk 404s after a deploy, a CSP blocks
+ *      it, the browser is too old for the bundle.
+ *   3. The reader never scrolls it into view, or is reading in a context that
+ *      strips scripts entirely (reader mode, an email digest, a print-out).
+ *
+ * A `<noscript>` only covers case 1. So the shell does two things:
+ *
+ *   - A **permanently visible summary line** renders `fallbackSummary` as plain
+ *     text, always, for every reader. It is in the static HTML, it never
+ *     depends on hydration, and it states the conclusion the demo is there to
+ *     illustrate. Cases 2 and 3 are covered by this, and it is genuinely useful
+ *     even when the demo works — it is the sentence you would have written if
+ *     the article had no demo in it.
+ *
+ *   - A **`<noscript>` notice** additionally explains *why* the controls are
+ *     inert, which is information only a no-JS reader needs and which would be
+ *     noise for everyone else. It does not repeat the summary; it points at it.
+ *
+ * The rule for authors: write `fallbackSummary` as a complete sentence that
+ * carries the point of the demo. If deleting the island from the page would
+ * damage the article, the summary is not doing its job.
+ */
+
+import { SITE_URL } from '@/lib/site';
+
+interface Props {
+  title: string;
+  description?: string;
+  sourceHref?: string;
+  fallbackSummary: string;
+}
+
+const { title, description, sourceHref, fallbackSummary } = Astro.props;
+
+/**
+ * Heading level.
+ *
+ * `<h3>`, on the assumption that a demo is embedded *within* a section of an
+ * article whose sections are `<h2>`s. That holds for every post we have; if a
+ * post ever puts a demo at top level the outline will skip a level rather than
+ * break, which is the safer failure. It is deliberately not configurable — a
+ * heading-level prop is an invitation to produce an inconsistent outline.
+ */
+
+/**
+ * Slug for the heading id, so the `<section>` can be labelled by its own
+ * heading (and so the demo is linkable). Prefixed to avoid colliding with the
+ * ids `rehype-slug` generates for the article's own headings.
+ */
+const headingId = `demo-${title
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')}`;
+
+/**
+ * External-link detection, matching LinkCard's rules. Duplicated rather than
+ * shared because `src/lib/` is a different owner's surface; if a third
+ * component needs this, that is the moment to lift it into `src/lib/`.
+ */
+function isExternalHref(candidate: string): boolean {
+  const looksAbsolute = /^https?:\/\//i.test(candidate) || candidate.startsWith('//');
+  if (!looksAbsolute) return false;
+
+  try {
+    const base = `${SITE_URL}/`;
+    return new URL(candidate, base).origin !== new URL(base).origin;
+  } catch {
+    return true;
+  }
+}
+
+const sourceIsExternal = sourceHref !== undefined && isExternalHref(sourceHref);
+---
+
+<section class="demo" aria-labelledby={headingId}>
+  <h3 class="demo__title" id={headingId}>{title}</h3>
+
+  {description && <p class="demo__description">{description}</p>}
+
+  <div class="demo__stage">
+    <slot />
+  </div>
+
+  <noscript>
+    <p class="demo__noscript">
+      This demo is interactive and needs JavaScript, which is off in this browser. The summary below
+      gives the result it would show.
+    </p>
+  </noscript>
+
+  <p class="demo__summary">
+    <span class="demo__summary-label">In short</span>
+    {fallbackSummary}
+  </p>
+
+  {
+    sourceHref && (
+      <p class="demo__source">
+        <a
+          href={sourceHref}
+          target={sourceIsExternal ? '_blank' : undefined}
+          rel={sourceIsExternal ? 'noopener noreferrer' : undefined}
+        >
+          View the source for this demo
+          {sourceIsExternal && <span class="visually-hidden">(opens in a new tab)</span>}
+        </a>
+      </p>
+    )
+  }
+</section>
+
+<style>
+  .demo {
+    max-width: 100%;
+    padding: var(--space-md);
+    background-color: var(--color-surface);
+    border: var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .demo__title {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-snug);
+    color: var(--color-text);
+  }
+
+  .demo__description {
+    margin-block-start: var(--space-2xs);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    text-wrap: pretty;
+  }
+
+  /* The stage reserves no fixed height: the island is server-rendered with its
+   * default value already in place, so hydration swaps behaviour in without
+   * changing the layout. Anything wider than the column scrolls inside here
+   * rather than widening the page. */
+  .demo__stage {
+    margin-block-start: var(--space-md);
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .demo__noscript {
+    margin-block-start: var(--space-sm);
+    padding: var(--space-2xs) var(--space-xs);
+    background-color: var(--color-surface-sunken);
+    border-inline-start: var(--border-width-thick) solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+
+  .demo__summary {
+    margin-block-start: var(--space-md);
+    padding-block-start: var(--space-sm);
+    border-block-start: var(--border);
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+    text-wrap: pretty;
+  }
+
+  .demo__summary-label {
+    /* A quiet run-in label, not a heading — it must stay out of the article
+     * outline for the same reason Callout's title does. */
+    margin-inline-end: var(--space-3xs);
+    color: var(--color-text-subtle);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+  }
+
+  .demo__source {
+    margin-block-start: var(--space-sm);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+</style>

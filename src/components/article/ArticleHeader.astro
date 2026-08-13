@@ -1,0 +1,282 @@
+---
+/**
+ * ArticleHeader — the masthead of a post page.
+ *
+ * Owns the page's single `<h1>`, the standfirst, the byline, the dates, the
+ * tags and the hero image. `hashnodeUrl` is provenance metadata and is never
+ * rendered.
+ *
+ * ## Hero images
+ *
+ * `heroImage.src` is a plain string in the content schema (a site-relative
+ * path served from `public/`), not an ESM image import, so `astro:assets`
+ * cannot process it: `<Image />` needs either an imported asset or explicit
+ * intrinsic dimensions, and the schema carries neither. We therefore emit a
+ * plain `<img>` with `width`/`height` attributes and a matching CSS
+ * `aspect-ratio`, which reserves the box before the bytes arrive and keeps
+ * cumulative layout shift at zero regardless of the file's real dimensions
+ * (`object-fit: cover` absorbs the difference).
+ *
+ * If we later want real srcset/AVIF output, the fix is in the schema, not
+ * here: make `heroImage.src` use the `image()` loader helper in
+ * `src/content.config.ts` so the entry becomes an `ImageMetadata`, then swap
+ * the `<img>` below for `<Image />`. See the report/AUTHORING notes.
+ */
+import type { CollectionEntry } from 'astro:content';
+
+import { formatDate, toISODateTime } from '@/lib/post-utils';
+import { BASE_PATH } from '@/lib/site';
+
+export interface Props {
+  post: CollectionEntry<'posts'>;
+}
+
+const { post } = Astro.props;
+const { data } = post;
+
+/**
+ * House hero ratio (16:9), used when the author gives us no dimensions. The
+ * `width`/`height` attributes and the CSS `aspect-ratio` are both derived from
+ * these, and `object-fit: cover` absorbs any difference from the real file.
+ */
+const FALLBACK_HERO_WIDTH = 1600;
+const FALLBACK_HERO_HEIGHT = 900;
+
+/** Byline avatar edge, in CSS pixels. Square by definition. */
+const AVATAR_SIZE = 24;
+
+/**
+ * Optional `#WxH` dimension hint on the image path — the same convention the
+ * `<Figure>` MDX component uses, e.g. `/images/hero.png#1600x900`. When it is
+ * present we can emit the true intrinsic size and let the browser derive the
+ * aspect ratio from the attributes; when it is absent we fall back to the
+ * house ratio. Either way the box is reserved before the image loads.
+ */
+function parseDimensionHint(path: string): { width: number; height: number } | null {
+  const match = /#(\d+)x(\d+)$/.exec(path);
+  if (!match?.[1] || !match[2]) return null;
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+const heroDimensions = data.heroImage ? parseDimensionHint(data.heroImage.src) : null;
+const heroWidth = heroDimensions?.width ?? FALLBACK_HERO_WIDTH;
+const heroHeight = heroDimensions?.height ?? FALLBACK_HERO_HEIGHT;
+---
+
+<header class="article-header">
+  <p class="article-header__back">
+    <a href={BASE_PATH}>
+      <span aria-hidden="true">&larr;</span> Back to Engineering
+    </a>
+  </p>
+
+  <h1 class="article-header__title">{data.title}</h1>
+
+  <p class="article-header__standfirst">{data.description}</p>
+
+  <div class="article-header__meta">
+    <p class="article-header__byline">
+      <span class="article-header__label">By</span>
+      {
+        data.authors.map((author, index) => (
+          <span class="article-header__author">
+            {index > 0 && (
+              <span class="article-header__separator" aria-hidden="true">
+                &middot;
+              </span>
+            )}
+            {author.avatar && (
+              /* Decorative: the author's name sits right next to it, so an
+                 alt text would only repeat what is already announced. Fixed
+                 pixel dimensions keep the byline from reflowing on load. */
+              <img
+                class="article-header__avatar"
+                src={author.avatar}
+                alt=""
+                width={AVATAR_SIZE}
+                height={AVATAR_SIZE}
+                loading="eager"
+                decoding="async"
+              />
+            )}
+            <span class="article-header__author-name">{author.name}</span>
+            {author.role && <span class="article-header__author-role">{author.role}</span>}
+          </span>
+        ))
+      }
+    </p>
+
+    <p class="article-header__dates">
+      <time datetime={toISODateTime(data.publishedAt)}>{formatDate(data.publishedAt)}</time>
+      {
+        data.updatedAt && (
+          <span class="article-header__updated">
+            Updated{' '}
+            <time datetime={toISODateTime(data.updatedAt)}>{formatDate(data.updatedAt)}</time>
+          </span>
+        )
+      }
+    </p>
+  </div>
+
+  <ul class="article-header__tags">
+    {data.tags.map((tag) => <li class="article-header__tag">{tag}</li>)}
+  </ul>
+
+  {
+    data.heroImage && (
+      <img
+        class:list={[
+          'article-header__hero',
+          { 'article-header__hero--house-ratio': heroDimensions === null },
+        ]}
+        src={data.heroImage.src}
+        alt={data.heroImage.alt}
+        width={heroWidth}
+        height={heroHeight}
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      />
+    )
+  }
+</header>
+
+<style>
+  .article-header {
+    margin-block-end: var(--space-xl);
+  }
+
+  .article-header__back {
+    margin: 0 0 var(--space-md);
+    font-size: var(--text-sm);
+  }
+
+  .article-header__back a {
+    color: var(--color-text-muted);
+    text-decoration-color: var(--color-border-strong);
+  }
+
+  .article-header__back a:hover {
+    color: var(--color-accent-hover);
+    text-decoration-color: currentcolor;
+  }
+
+  .article-header__title {
+    font-size: var(--text-4xl);
+  }
+
+  .article-header__standfirst {
+    max-width: var(--measure);
+    margin-block-start: var(--space-sm);
+    color: var(--color-text-muted);
+    font-size: var(--text-lg);
+    line-height: var(--leading-snug);
+    text-wrap: pretty;
+  }
+
+  .article-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs) var(--space-md);
+    margin-block-start: var(--space-md);
+    padding-block-start: var(--space-md);
+    border-block-start: var(--border);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .article-header__byline,
+  .article-header__dates {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-3xs) var(--space-2xs);
+    margin: 0;
+  }
+
+  .article-header__label {
+    color: var(--color-text-subtle);
+  }
+
+  .article-header__author {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-3xs);
+  }
+
+  .article-header__avatar {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: var(--radius-pill);
+    border: var(--border);
+    object-fit: cover;
+    background-color: var(--color-surface-sunken);
+    /* Keeps the circle on the text baseline rather than hanging below it. */
+    align-self: center;
+  }
+
+  .article-header__author-name {
+    color: var(--color-text);
+    font-weight: var(--weight-medium);
+  }
+
+  .article-header__author-role {
+    color: var(--color-text-subtle);
+  }
+
+  .article-header__author-role::before {
+    content: '(';
+  }
+
+  .article-header__author-role::after {
+    content: ')';
+  }
+
+  .article-header__separator {
+    color: var(--color-border-strong);
+  }
+
+  .article-header__updated::before {
+    content: '\00b7';
+    margin-inline-end: var(--space-2xs);
+    color: var(--color-border-strong);
+  }
+
+  .article-header__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3xs) var(--space-2xs);
+    margin-block-start: var(--space-sm);
+    padding: 0;
+    list-style: none;
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .article-header__tag {
+    padding: 0 var(--space-2xs);
+    border: var(--border);
+    border-radius: var(--radius-pill);
+    line-height: 1.8;
+  }
+
+  .article-header__hero {
+    width: 100%;
+    /* With real width/height attributes the browser reserves the box from the
+     * attribute ratio, so `height: auto` is all that is needed. */
+    height: auto;
+    margin-block-start: var(--space-lg);
+    border: var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-surface-sunken);
+  }
+
+  /* No dimension hint: pin the box to the house 16:9 ratio and crop to fit,
+   * so an unexpected intrinsic size cannot shift the page after load. */
+  .article-header__hero--house-ratio {
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+  }
+</style>

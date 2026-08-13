@@ -1,0 +1,177 @@
+---
+title: 'How many LLM calls is your eval suite actually making?'
+description: 'A 120-case eval set fans out into roughly a million LLM calls a month. Here is the back-of-the-envelope arithmetic — peak rate and daily total, which are different numbers — to do before you build the pipeline.'
+publishedAt: 2026-08-13
+authors:
+  - name: 'Ode Engineering'
+    role: 'Engineering'
+tags:
+  - 'evals'
+  - 'llm'
+  - 'capacity-planning'
+draft: false
+featured: true
+---
+
+import Callout from '@/components/mdx/Callout.astro';
+import LinkCard from '@/components/mdx/LinkCard.astro';
+import InteractiveDemoShell from '@/components/interactive/InteractiveDemoShell.astro';
+import ExampleCalculator from '@/components/interactive/ExampleCalculator.tsx';
+
+A 120-case eval set does not sound like traffic. But an eval suite is a request
+generator, and once you multiply cases by pipeline stages by judged dimensions
+by how often CI fires, you are looking at something close to a million LLM calls
+a month. That number belongs on a whiteboard before you write the runner, not in
+the postmortem after the first rate-limit incident.
+
+## The multiplier is the whole story
+
+Nobody sizes an eval pipeline wrong because they cannot multiply. They size it
+wrong because they count the wrong unit. "We have 120 eval cases" is a count of
+rows in a fixture file. The thing that reaches the API is calls, and every case
+fans out into several of them.
+
+Take a three-stage pipeline — extract, reason, generate — with two LLM-judged
+dimensions on each stage:
+
+```ts
+const EVAL_CASES = 120; // rows in the fixture file
+const STAGES_UNDER_TEST = 3; // extract, reason, generate
+const JUDGED_DIMENSIONS = 2; // per stage; the ones a deterministic check cannot cover
+const RUNS_PER_DAY = 30; // one per merge to main, on an ordinary day
+
+// One call to exercise the stage, plus one judge call per judged dimension.
+const callsPerRun = EVAL_CASES * STAGES_UNDER_TEST * (1 + JUDGED_DIMENSIONS); // 1,080
+const callsPerDay = callsPerRun * RUNS_PER_DAY; // 32,400
+
+console.log(
+  `${callsPerRun.toLocaleString('en-US')} calls/run × ${RUNS_PER_DAY} runs/day = ${callsPerDay.toLocaleString('en-US')} calls/day = ${(callsPerDay * 30).toLocaleString('en-US')} calls/month`,
+);
+```
+
+972,000 calls a month, out of a fixture file you could read in an afternoon.
+
+The `(1 + JUDGED_DIMENSIONS)` term is where the surprise lives. Every dimension
+you add multiplies against every case and every stage, so a third judged
+dimension is not "one more eval" — it takes the same suite to 1,296,000 calls a
+month. The unit that grows is the product, not the fixture.
+
+## Peak rate and daily total are different numbers
+
+The multiplication above gives you one number. Sizing needs two, because two
+different systems are counting.
+
+A run of 1,080 calls does not trickle out over the day. The runner executes it
+with, say, 20-way concurrency, and if a call averages 1.5 seconds that is about
+13 calls per second for roughly 83 seconds, then nothing until the next merge.
+
+- **The rate limiter sees 13 requests per second.** It has no idea your run is
+  nearly over.
+- **The invoice sees 32,400 requests per day.** It has no idea you sent them in
+  90-second bursts.
+
+Sizing off one of these and ignoring the other is the usual failure. Here is
+what the peak looks like if you naively extrapolate it:
+
+<InteractiveDemoShell
+  title="What a sustained rate adds up to"
+  description="The eval run's burst rate is 13 requests per second. Drag it to see what any sustained rate implies per day and per month."
+  sourceHref="https://github.com/jakeschaeffer/engblog/blob/main/src/components/interactive/ExampleCalculator.tsx"
+  fallbackSummary="A burst of 13 requests per second — one eval run at 20-way concurrency — extrapolates to 1,123,200 requests a day and 33,696,000 a month. The suite only sustains that rate for about 83 seconds per run, so its real volume is 32,400 calls a day: roughly 35 times smaller. The peak is what the rate limiter enforces against; the daily total is what you pay for. Size against both."
+>
+  <ExampleCalculator client:visible initialRequestsPerSecond={13} />
+</InteractiveDemoShell>
+
+Your suite sustains 13 per second for 83 seconds, not for 86,400 of them, so
+that monthly figure is about 35 times your real usage. The gap is the point.
+Provision against the extrapolated peak and you buy capacity you will never use;
+plan against the daily average of 0.4 requests per second and you will collect a
+429 the first time CI fires.
+
+## What the two numbers actually change
+
+### Rate limits are per minute; your estimate is per day
+
+Providers meter in requests per minute and tokens per minute, so convert before
+comparing. Our peak of 13 requests per second is 780 RPM — comfortable almost
+anywhere. But if each call averages 1,200 input and 300 output tokens, the same
+peak is about 1.17 million tokens per minute, which is not comfortable anywhere.
+
+The token limit binds before the request limit, and it usually does. Judge calls
+are the reason: they resend the input, the output, and a rubric, so their token
+cost per call runs well above the pipeline call they are grading.
+
+<Callout type="warning" title="Check whose quota you are spending">
+  If the eval pipeline authenticates with the same key or project as production, its bursts consume
+  the limit your users are queued against. A CI-triggered eval run that starves live traffic is an
+  outage you caused with a test. Separate keys, separate projects, or a separate tier — decide which
+  before the first scheduled run, not during it.
+</Callout>
+
+### Cost is the arithmetic everyone does and still gets wrong
+
+At an illustrative $0.25 per million input tokens and $1.25 per million output
+tokens — substitute your own — that 1,500-token call costs about $0.000675. The
+run costs $0.73. The month costs about $660.
+
+That is small enough that nobody schedules a meeting about it, which is exactly
+how it grows unexamined. Take the judged dimensions from two to four and run on
+every push instead of every merge, say 100 runs a day, and the same suite is
+about $3,600 a month. Neither change felt like a budget decision when it was
+made.
+
+### Wall-clock time is a budget too
+
+At 20-way concurrency the run takes 83 seconds. Drop to 5-way and it takes five
+and a half minutes. Add 429s and exponential backoff and it takes fifteen. An
+eval suite that takes fifteen minutes stops running on every merge, because
+someone will make it stop, and then you have the cost of maintaining evals with
+none of the feedback.
+
+## Sanity-check the estimate before you build
+
+Five minutes, on paper:
+
+1. **Write the multiplication down explicitly** — cases × stages × (1 + judged
+   dimensions) × runs per day. If you cannot name each factor, you are guessing.
+2. **Compute both numbers**: peak requests per second during a run, and total
+   requests per day.
+3. **Convert the peak into the provider's units** (RPM and TPM) and compare it
+   to the limits on your actual account tier, not the ones on the pricing page.
+4. **Multiply the daily total by 30** and ask whether you would approve that as
+   a line item. If the answer is "I would want to look at it", look at it now.
+5. **Decide what happens on a 429** before you meet one: retry with jitter, a
+   concurrency cap, or a queue that drains more slowly.
+
+Every one of these is cheaper to answer before the runner exists.
+
+## When the number comes out too big
+
+The instinct is to cut eval cases. That is the worst lever available — coverage
+is the thing you were buying. Cut the multiplier instead.
+
+**Move dimensions off the judge.** Schema validation, exact match, and set
+membership cost nothing, run deterministically, and remove a whole factor from
+the product. Reserve the judge for dimensions that genuinely resist a
+deterministic check.
+
+<LinkCard
+  href="/engineering/your-evals-have-a-rotten-tomatoes-problem/"
+  title="Your evals have a Rotten Tomatoes problem"
+  description="Why a single score cannot tell you what regressed, and how to decompose evaluation into dimensions worth scoring separately."
+/>
+
+**Sample per-commit, run full nightly.** A stratified 20% sample on every merge
+and the whole suite once a day keeps the feedback loop and drops weekday volume
+by four fifths.
+
+**Cache on input hash.** Eval inputs are fixed by definition. If a stage's
+prompt and model are unchanged, its outputs are worth reusing, and the only
+calls you pay for are the ones your change could plausibly have affected.
+
+**Use the batch endpoint for the nightly run.** Nothing is waiting on it, and
+asynchronous batch pricing is usually about half.
+
+None of this needs a spreadsheet or a capacity model. It needs one multiplication
+before you write the runner, and the discipline to carry two numbers out of it
+instead of one.

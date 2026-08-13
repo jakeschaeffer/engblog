@@ -1,0 +1,128 @@
+---
+/**
+ * Callout — a set-aside note inside an article.
+ *
+ * Usage in MDX:
+ *
+ *   <Callout type="warning" title="This API is deprecated">
+ *     Use `renderPost()` instead. The old entry point is removed in v3.
+ *   </Callout>
+ *
+ * Design decisions worth knowing before you change this file:
+ *
+ *   - **Type is never signalled by colour alone.** Each variant renders its
+ *     name ("Warning", "Note", …) as a visible text label. The accent colour is
+ *     a second, redundant channel. WCAG 1.4.1 is the floor here, but the real
+ *     reason is printing and greyscale screenshots.
+ *
+ *   - **The optional title is a `<p>`, not a heading.** Articles build a table
+ *     of contents from their `<h2>`/`<h3>`s; a callout that injected an `<h2>`
+ *     would appear in the outline as if it were a section of the post. Styling
+ *     gives it heading weight without heading semantics.
+ *
+ *   - **`aria-label`, not `role="alert"`.** These are static prose asides
+ *     rendered at build time, not live regions — nothing arrives after page
+ *     load, so there is nothing for assistive technology to interrupt for. The
+ *     label gives the aside an accessible name so it is announced as
+ *     "Warning: This API is deprecated, complementary" rather than as an
+ *     unnamed landmark.
+ */
+
+interface Props {
+  type: 'info' | 'warning' | 'success' | 'note';
+  title?: string;
+}
+
+const { type, title } = Astro.props;
+
+/** Visible text for each variant — the non-colour channel described above. */
+const LABELS = {
+  info: 'Info',
+  warning: 'Warning',
+  success: 'Success',
+  note: 'Note',
+} as const satisfies Record<Props['type'], string>;
+
+const label = LABELS[type];
+const accessibleName = title ? `${label}: ${title}` : `${label} callout`;
+---
+
+<aside class={`callout callout--${type}`} aria-label={accessibleName}>
+  <p class="callout__label">{label}</p>
+  {title && <p class="callout__title">{title}</p>}
+  <div class="callout__body"><slot /></div>
+</aside>
+
+<style>
+  /* The variant classes set one custom property; everything else is shared.
+   * Adding a variant is therefore a two-line change here plus a union member
+   * in `Props` — no new rules for padding, borders or type. */
+  .callout {
+    --callout-accent: var(--color-border-strong);
+
+    max-width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-surface);
+    border: var(--border);
+    /* A weighted leading edge in the variant colour. Restrained: no tinted
+     * background wash, no icon chrome, no shadow. */
+    border-inline-start: var(--border-width-thick) solid var(--callout-accent);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-size: var(--text-base);
+    line-height: var(--leading-relaxed);
+  }
+
+  .callout--info {
+    --callout-accent: var(--color-accent);
+  }
+
+  .callout--warning {
+    --callout-accent: var(--color-warning);
+  }
+
+  .callout--success {
+    --callout-accent: var(--color-success);
+  }
+
+  .callout--note {
+    --callout-accent: var(--color-border-strong);
+  }
+
+  .callout__label {
+    margin: 0;
+    color: var(--callout-accent);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    line-height: var(--leading-normal);
+    text-transform: uppercase;
+  }
+
+  /* `note` is deliberately neutral, and `--color-border-strong` is a line
+   * colour, not a text colour — it would not pass contrast as a label. */
+  .callout--note .callout__label {
+    color: var(--color-text-muted);
+  }
+
+  .callout__title {
+    margin: 0;
+    margin-block-start: var(--space-3xs);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-snug);
+    color: var(--color-text);
+    text-wrap: balance;
+  }
+
+  .callout__body {
+    margin-block-start: var(--space-2xs);
+  }
+
+  /* Slotted content comes from MDX, so it carries no scope attribute of ours —
+   * `:global()` is required to reach it. Vertical rhythm only; the callout does
+   * not restyle the author's paragraphs, lists or code. */
+  .callout__body > :global(* + *) {
+    margin-block-start: var(--space-sm);
+  }
+</style>

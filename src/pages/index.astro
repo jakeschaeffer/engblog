@@ -1,0 +1,93 @@
+---
+/**
+ * `/` — the site root.
+ *
+ * ## Why a landing page and not a redirect
+ *
+ * The canonical public route for everything here is `/engineering/` (see
+ * `BASE_PATH` in `@/lib/site`), so `/` has almost nothing to say. The two
+ * options were an Astro `redirect` and this: a real, tiny page.
+ *
+ * A real page wins:
+ *
+ *   1. This publication is a *section* of a larger marketing property. In the
+ *      deployed shape, `/` on this origin sits behind a proxy that may already
+ *      be routing `/` somewhere else. A 301 emitted here would either be
+ *      shadowed or would add a second hop to a chain that already has one —
+ *      and a redirect chain is the kind of thing that quietly costs a crawl
+ *      budget and breaks a copy-pasted link.
+ *   2. A static export's `redirect` is an HTML page with a `<meta http-equiv>`
+ *      refresh unless the host understands Astro's redirect map. A meta-refresh
+ *      is explicitly not what we want: it is hostile to screen readers, it
+ *      breaks the back button, and it is indistinguishable from a hijack.
+ *   3. Keeping `/` useful costs one paragraph and one link.
+ *
+ * So: publication name, one line of context, one prominent link onward. If the
+ * publication ever moves to the root, this file becomes the index and
+ * `BASE_PATH` changes — no redirect to unwind.
+ */
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { BASE_PATH, RSS_PATH, SITE_DESCRIPTION, SITE_NAME } from '@/lib/site';
+---
+
+<BaseLayout title={SITE_NAME} description={SITE_DESCRIPTION}>
+  <div class="container container--content root">
+    <h1 class="root__title">{SITE_NAME}</h1>
+
+    <p class="root__lede">{SITE_DESCRIPTION}</p>
+
+    <p class="root__cta">
+      <a class="root__link" href={BASE_PATH}>Read the publication</a>
+    </p>
+
+    <p class="root__aside">
+      Everything is published under <code>{BASE_PATH}</code>. There is also an
+      <a href={RSS_PATH}>RSS feed</a>.
+    </p>
+  </div>
+</BaseLayout>
+
+<style>
+  .root {
+    padding-block: var(--space-2xl);
+  }
+
+  .root__title {
+    font-size: var(--text-4xl);
+  }
+
+  .root__lede {
+    max-width: var(--measure-narrow);
+    margin-block-start: var(--space-md);
+    color: var(--color-text-muted);
+    font-size: var(--text-lg);
+    line-height: var(--leading-relaxed);
+    text-wrap: pretty;
+  }
+
+  .root__cta {
+    margin-block-start: var(--space-lg);
+  }
+
+  /* A link, styled as the page's one obvious next step. Not a button: it
+   * navigates, so it stays an anchor and inherits the global focus ring. */
+  .root__link {
+    display: inline-block;
+    padding: var(--space-2xs) var(--space-md);
+    border: var(--border-width-thick) solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+  }
+
+  .root__link:hover {
+    background-color: var(--color-accent-subtle);
+    text-decoration: underline;
+  }
+
+  .root__aside {
+    margin-block-start: var(--space-xl);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+</style>

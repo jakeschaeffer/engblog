@@ -1,0 +1,142 @@
+---
+/**
+ * LinkCard — a block-level link with a title and optional description.
+ *
+ * Usage in MDX:
+ *
+ *   <LinkCard
+ *     href="/engineering/porting-our-first-engineering-post"
+ *     title="Porting our first engineering post"
+ *     description="What moved cleanly from Hashnode, and what did not."
+ *   />
+ *
+ * Structure: the card *is* the anchor. There is exactly one `<a>` and nothing
+ * interactive inside it — no nested link, no button, no separate "read more".
+ * That keeps the whole card one tab stop and one announcement, and avoids the
+ * classic "card with a stretched link" trap where a nested control becomes
+ * unreachable.
+ *
+ * External links get three things internal links do not:
+ *   - `target="_blank"` with `rel="noopener noreferrer"`,
+ *   - a visible arrow glyph (`aria-hidden`, because it is decoration),
+ *   - visually-hidden text "(opens in a new tab)" so the behaviour is
+ *     announced rather than merely drawn.
+ */
+
+import { SITE_URL } from '@/lib/site';
+
+interface Props {
+  href: string;
+  title: string;
+  description?: string;
+}
+
+const { href, title, description } = Astro.props;
+
+/**
+ * Is this link leaving the publication?
+ *
+ * Only absolute `http(s)` (and protocol-relative) URLs can be external; those
+ * are resolved and their origin compared to `SITE_URL`. Everything else — a
+ * root-relative path, a bare relative path, a fragment — is by definition on
+ * this origin.
+ *
+ * Other schemes (`mailto:`, `tel:`) are treated as internal for this purpose:
+ * they are handled by the OS, not by a new browser tab, so `target="_blank"`
+ * and "opens in a new tab" would both be lies.
+ *
+ * (This helper is duplicated in InteractiveDemoShell.astro rather than shared
+ * from `src/lib/` — see the note there.)
+ */
+function isExternalHref(candidate: string): boolean {
+  const looksAbsolute = /^https?:\/\//i.test(candidate) || candidate.startsWith('//');
+  if (!looksAbsolute) return false;
+
+  try {
+    const base = `${SITE_URL}/`;
+    return new URL(candidate, base).origin !== new URL(base).origin;
+  } catch {
+    // An unparseable absolute-looking URL is not ours; fail safe.
+    return true;
+  }
+}
+
+const isExternal = isExternalHref(href);
+---
+
+<a
+  class="link-card"
+  href={href}
+  target={isExternal ? '_blank' : undefined}
+  rel={isExternal ? 'noopener noreferrer' : undefined}
+>
+  <span class="link-card__title">
+    {title}
+    {
+      isExternal && (
+        <span class="link-card__external" aria-hidden="true">
+          ↗
+        </span>
+      )
+    }
+    {isExternal && <span class="visually-hidden">(opens in a new tab)</span>}
+  </span>
+  {description && <span class="link-card__description">{description}</span>}
+</a>
+
+<style>
+  .link-card {
+    display: block;
+    max-width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background-color: var(--color-surface);
+    border: var(--border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    text-decoration: none;
+    transition:
+      border-color var(--duration-base) var(--easing),
+      background-color var(--duration-base) var(--easing);
+  }
+
+  .link-card:hover {
+    /* Functional feedback only: the edge firms up. No lift, no shadow, no
+     * scale — global.css neutralises transitions under reduced-motion anyway. */
+    border-color: var(--color-border-strong);
+    background-color: var(--color-surface-sunken);
+    color: var(--color-text);
+  }
+
+  .link-card__title {
+    display: block;
+    color: var(--color-accent);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    line-height: var(--leading-snug);
+    /* Long titles and URLs wrap instead of widening the column. */
+    overflow-wrap: break-word;
+  }
+
+  .link-card:hover .link-card__title {
+    color: var(--color-accent-hover);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  .link-card__external {
+    /* Glued to the last word so the arrow never wraps onto a line by itself. */
+    display: inline-block;
+    margin-inline-start: var(--space-3xs);
+    font-size: 0.85em;
+    line-height: 1;
+  }
+
+  .link-card__description {
+    display: block;
+    margin-block-start: var(--space-3xs);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    text-wrap: pretty;
+  }
+</style>

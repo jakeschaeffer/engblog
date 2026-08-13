@@ -1,0 +1,144 @@
+---
+/**
+ * Figure — an image with an optional caption.
+ *
+ * Usage in MDX:
+ *
+ *   <Figure src="/images/pipeline.png#1600x900" alt="Build pipeline diagram" />
+ *   <Figure src="/images/chart.png" alt="" caption="Requests per second, week 12" />
+ *
+ * ---------------------------------------------------------------------------
+ * ALT TEXT
+ * ---------------------------------------------------------------------------
+ * `alt` is required by the type *and* checked at runtime below. The type alone
+ * is not enough: MDX passes props through loosely and a mistyped attribute
+ * (`atl=`) would otherwise ship a silently inaccessible image. The runtime
+ * check turns that into a failed build with the offending `src` named.
+ *
+ * `alt=""` is legitimate and is allowed — it marks an image as decorative, so
+ * screen readers skip it. It has to be passed explicitly; omitting `alt`
+ * entirely is the error case.
+ *
+ * ---------------------------------------------------------------------------
+ * DIMENSIONS AND LAYOUT SHIFT  (read this before adding an image to a post)
+ * ---------------------------------------------------------------------------
+ * An `<img>` with no intrinsic size reflows the article when it finishes
+ * loading. There are two ways to give this component the size it needs:
+ *
+ *   1. **Import the asset (preferred).** Put the file in `src/assets/` and
+ *      import it in the MDX frontmatter section:
+ *
+ *          import diagram from '../../assets/diagram.png';
+ *          <Figure src={diagram} alt="…" />
+ *
+ *      Astro reads the real pixel dimensions at build time, so `<Image />`
+ *      emits `width`/`height` and an optimised, correctly-sized file. The
+ *      declared prop type is `string` because that is the common case; an
+ *      imported asset is an `ImageMetadata` object and is detected at runtime
+ *      (see `source` below).
+ *
+ *   2. **Append a `#WxH` hint to a string path.** For files in `public/` and
+ *      for remote URLs there is no build-time metadata, so state the size in
+ *      the path:
+ *
+ *          <Figure src="/images/pipeline.png#1600x900" alt="…" />
+ *
+ *      The fragment is parsed here into `width`/`height` attributes. Browsers
+ *      strip the fragment before fetching, so the image URL is unaffected. Give
+ *      the *intrinsic* pixel size, not the displayed size — CSS scales the
+ *      image down, and the browser only needs the ratio to reserve space.
+ *
+ * Passing neither still works; the image just cannot reserve its space, so
+ * prefer option 1.
+ */
+
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  src: string;
+  alt: string;
+  caption?: string;
+}
+
+const { src, alt, caption } = Astro.props;
+
+/**
+ * Runtime widening. The public contract is `src: string`, but an MDX author
+ * following option 1 above hands us an `ImageMetadata` object. Both are
+ * supported; only the string form is advertised in the type.
+ */
+// The assertion is what keeps the union alive: without it TypeScript narrows a
+// `const` to the type of its initialiser (`string`), so the `ImageMetadata`
+// branch below would be `never` and `source.src` would not type-check.
+const source = src as string | ImageMetadata;
+
+if (typeof alt !== 'string') {
+  const described = typeof source === 'string' ? source : source.src;
+  throw new Error(
+    `<Figure> requires an \`alt\` prop of type string (use alt="" for a purely ` +
+      `decorative image). Missing or non-string alt on src="${described}".`,
+  );
+}
+
+/**
+ * Parse the `#WxH` dimension hint documented above. Returns undefined
+ * dimensions when the hint is absent, so the attributes are simply omitted.
+ */
+function parseDimensionHint(path: string): { width?: number; height?: number } {
+  const match = /#(\d+)x(\d+)$/.exec(path);
+  if (!match?.[1] || !match[2]) return {};
+  return { width: Number(match[1]), height: Number(match[2]) };
+}
+
+const { width, height } = typeof source === 'string' ? parseDimensionHint(source) : {};
+---
+
+<figure class="figure">
+  {
+    typeof source === 'string' ? (
+      <img
+        class="figure__img"
+        src={source}
+        alt={alt}
+        width={width}
+        height={height}
+        loading="lazy"
+        decoding="async"
+      />
+    ) : (
+      <Image class="figure__img" src={source} alt={alt} loading="lazy" decoding="async" />
+    )
+  }
+  {caption && <figcaption class="figure__caption">{caption}</figcaption>}
+</figure>
+
+<style>
+  .figure {
+    margin: 0;
+    max-width: 100%;
+  }
+
+  .figure__img {
+    display: block;
+    /* Never wider than the reading column, and never taller than the viewport
+     * on a phone in landscape. `height: auto` keeps the aspect ratio when the
+     * width constraint bites. */
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+    border: var(--border);
+    border-radius: var(--radius-md);
+    /* A neutral ground behind transparent PNGs and SVGs, so a diagram drawn in
+     * dark ink stays readable when the page is in dark mode. */
+    background-color: var(--color-surface);
+  }
+
+  .figure__caption {
+    margin-block-start: var(--space-2xs);
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+    text-wrap: pretty;
+  }
+</style>
