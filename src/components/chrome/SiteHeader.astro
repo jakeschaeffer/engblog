@@ -2,19 +2,50 @@
 /**
  * SiteHeader — the `banner` landmark.
  *
- * A wordmark and two links. It is deliberately not sticky and deliberately not
- * positioned: the skip link is `position: absolute; z-index: var(--z-skip-link)`
- * and must always paint above the chrome, so this element creates no stacking
- * context that could cover it.
+ * A brand lockup on the left and one quiet outbound action on the right. It is
+ * deliberately not sticky and deliberately not positioned: the skip link is
+ * `position: absolute; z-index: var(--z-skip-link)` and must always paint above
+ * the chrome, so this element creates no stacking context that could cover it.
+ *
+ * There is no primary nav. The lockup already goes to `/engineering/`, which is
+ * the only destination a nav could have offered, and the feed link lives in the
+ * footer — a two-item nav where one item was the page you are already on is
+ * chrome for its own sake.
  */
-import SiteNav from '@/components/chrome/SiteNav.astro';
 import { BASE_PATH, SITE_NAME } from '@/lib/site';
+
+/** Marketing site. Absolute by definition: it is a different property. */
+const BRAND_SITE_URL = 'https://ode.com';
 ---
 
 <header class="site-header">
   <div class="container site-header__inner">
-    <a class="site-header__wordmark" href={BASE_PATH}>{SITE_NAME}</a>
-    <SiteNav />
+    <a class="site-header__lockup" href={BASE_PATH}>
+      {
+        /*
+          TODO(phase-2): replace this <span> with the real inlined Ode logo SVG.
+          Keep it `aria-hidden` and keep the sibling "Engineering" text — the
+          link's accessible name comes from the text, not the mark, so the
+          artwork can be swapped without touching accessibility.
+          Placeholder: the same monogram as public/favicon.svg, inlined so the
+          header has no extra network request.
+        */
+      }
+      <span class="site-header__mark" aria-hidden="true">
+        <svg viewBox="0 0 32 32" width="24" height="24" focusable="false">
+          <circle cx="16" cy="16" r="8" fill="none" stroke="currentColor" stroke-width="3"></circle>
+          <path
+            d="M22 8v16"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linecap="butt"></path>
+        </svg>
+      </span>
+      <span class="site-header__title">{SITE_NAME}</span>
+    </a>
+
+    <a class="site-header__back" href={BRAND_SITE_URL}>Back to ode.com</a>
   </div>
 </header>
 
@@ -27,23 +58,69 @@ import { BASE_PATH, SITE_NAME } from '@/lib/site';
   .site-header__inner {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
     gap: var(--space-2xs) var(--space-md);
     padding-block: var(--space-sm);
   }
 
-  .site-header__wordmark {
+  .site-header__lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
     color: var(--color-text);
-    font-size: var(--text-base);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-tight);
     text-decoration: none;
   }
 
-  .site-header__wordmark:hover {
+  .site-header__mark {
+    display: inline-flex;
+    /* The mark is optically heavier than the word next to it, so it sits at
+     * the text colour and takes its size from the box, not the type scale. */
     color: var(--color-text);
+  }
+
+  .site-header__title {
+    font-size: var(--text-base);
+    /* Regular-weight brand type: hierarchy comes from size and tracking, not
+     * from bolding. */
+    font-weight: var(--weight-normal);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .site-header__lockup:hover {
+    color: var(--color-text);
+  }
+
+  .site-header__lockup:hover .site-header__title {
     text-decoration: underline;
     text-decoration-color: var(--color-border-strong);
+  }
+
+  /* A secondary action, not the page's accent: it leaves the publication, so
+   * it must not compete with the article links inside it. Quiet outline,
+   * brand-neutral ink, Tea on hover.
+   *
+   * `:focus-visible` is not declared here — the global ring in section 6 of
+   * global.css already applies to it, and the accent ring is 4.02:1 against
+   * Tea and 4.71:1 against Bone, both above the 3:1 UI floor. */
+  .site-header__back {
+    display: inline-block;
+    padding: var(--space-3xs) var(--space-xs);
+    border: var(--border-width) solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    text-decoration: none;
+    transition:
+      background-color var(--duration-fast) var(--easing),
+      border-color var(--duration-fast) var(--easing);
+  }
+
+  .site-header__back:hover {
+    background-color: var(--color-surface-sunken);
+    border-color: var(--color-text-muted);
+    /* Cola on Tea is 10.70:1 — the brand's second approved text setting. */
+    color: var(--color-text);
   }
 </style>

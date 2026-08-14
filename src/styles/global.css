@@ -1,32 +1,55 @@
 /* =============================================================================
- * Ode Engineering — global stylesheet and brand tokens
+ * Engineering — global stylesheet and Ode brand tokens
  * =============================================================================
  *
  * >>> THIS FILE IS THE SINGLE SOURCE OF TRUTH FOR BRAND VALUES. <<<
  *
- * If you are aligning this site with the Webflow brand, you should only need
- * to touch the `:root` block below. Everything downstream — layouts,
- * components, article typography, code blocks — reads these custom properties
- * and never hard-codes a colour, size, or radius.
+ * Everything downstream — layouts, components, article typography, code
+ * blocks — reads these custom properties and never hard-codes a colour, size
+ * or radius.
  *
- * How to re-brand:
- *   1. Replace the values in "1. COLOUR" with the Webflow palette. Keep the
- *      token *names*; only change the values.
- *   2. Replace `--font-sans` / `--font-mono` / `--font-serif` in "2. TYPE".
- *      Any webfont must be self-hosted (add @font-face here) — we do not load
- *      third-party font CDNs.
- *   3. Adjust `--measure` if the brand's preferred line length differs.
- *   4. Re-check the dark palette in section 9; it is a separate set of values,
- *      not an automatic inversion.
+ * THE PALETTE IS THE ODE BRAND PALETTE.
+ *   Bone      #FBFBF8   the page ground
+ *   Tea       #E8EBD7   secondary ground (code wells, sunken panels)
+ *   Lilac     #F4DCEA   accent wash, text selection
+ *   Slate     #D9D9D9   hairlines
+ *   Dove      #625855   supporting text
+ *   Cola      #3C2E2A   body copy and headings
+ *   Bistre    #201D1C   reserved; unused here
+ *   Tomato    #CD3E1D   the one accent — links, focus rings, danger
+ *   Blue Gray #728FA8   reserved; 3.26:1 on Bone, so never used for text
+ *
+ * Guide-approved pairings, and the only ones this site uses:
+ *   Cola on Bone (12.53:1) — the default text setting
+ *   Cola on Tea  (10.70:1) — the secondary ground
+ *   Tomato on Bone, Bone on Tomato, Tea + Dove, Lilac + Dove
+ *
+ * "Pale Gray" is defective in the guide (labelled #5EA6B1, filled #CEE5EE).
+ * Do not use it.
  *
  * House rules for this site:
+ *   - The guide recommends against accent colours for text. Tomato is the one
+ *     exception we take: it is only ever set on Bone or on white, where it
+ *     measures 4.71:1 / 4.88:1, and Tomato+Bone is an approved pairing. It is
+ *     never set on Tea (4.02:1). No other accent is ever used as text.
+ *   - The guide specifies no spacing, radius, line-height or letter-spacing
+ *     values, so sections 3-7 are OUR choices, tuned for long-form reading.
+ *     They are not brand values; do not "correct" them against the guide.
+ *   - Type is ABC Diatype with Helvetica Neue as the sanctioned fallback.
+ *     Diatype's web licensing is unresolved, so it is NOT self-hosted and NOT
+ *     loaded from anywhere. We name it first so a locally installed copy is
+ *     picked up, and fall back otherwise. We never load a third-party font CDN.
+ *   - The guide sanctions no dark theme and approves no text-on-dark pairing,
+ *     so this site is light-only. There is no `prefers-color-scheme` block
+ *     anywhere in this codebase, and no component may add one.
  *   - No CSS framework. No utility classes. Component styles live in Astro
  *     scoped <style> blocks and consume these tokens.
  *   - No gradients, no decorative animation, no parallax. This is a reading
  *     surface.
- *   - Dark mode is `prefers-color-scheme` only: no toggle, no client JS, no
- *     flash-of-wrong-theme, no localStorage.
  *   - Every interactive element must have a visible :focus-visible ring.
+ *   - Every colour used for text clears 4.5:1 against every ground it can sit
+ *     on. `src/styles/contrast.test.ts` reads this file and enforces it, so a
+ *     palette regression fails `npm run verify`.
  *
  * Scale conventions:
  *   - Spacing is a modular scale in rem; use tokens, not magic numbers.
@@ -35,59 +58,80 @@
 
 :root {
   /* ---------------------------------------------------------------------
-   * 1. COLOUR  (light theme — the default)
+   * 1. COLOUR  (Ode brand palette — light only)
    *
-   * Neutral dark text on a light ground. `--color-bg` is very slightly warm
-   * rather than pure #fff so long-form reading is easier on the eye.
-   * Contrast targets: body text >= 12:1, muted text >= 4.5:1 on `--color-bg`.
+   * Ratios below are WCAG 2.x, measured, not estimated. The three grounds a
+   * colour can land on are --color-bg (Bone), --color-surface (white) and
+   * --color-surface-sunken (Tea); Tea is the darkest, so it is the binding
+   * constraint. See src/styles/contrast.test.ts.
    * ------------------------------------------------------------------- */
 
   /* Surfaces */
-  --color-bg: #fdfdfc; /* page background */
-  --color-surface: #ffffff; /* cards, callouts sitting on the page */
-  --color-surface-sunken: #f4f4f2; /* code blocks, wells */
+  --color-bg: #fbfbf8; /* Bone — the page ground */
+  --color-surface: #ffffff; /* a plain lift off Bone: cards, callouts */
+  --color-surface-sunken: #e8ebd7; /* Tea — code wells, sunken panels */
 
   /* Text */
-  --color-text: #17181c; /* body copy and headings */
-  --color-text-muted: #5b5f68; /* metadata, captions, bylines — 6.2:1 on --color-bg */
-  /* The quietest text we ship. Still real text, so it still has to clear
-   * 4.5:1 — measured 4.85:1 on --color-bg, 4.97:1 on --color-surface and
-   * 4.5:1 on --color-surface-sunken. Do not lighten it further. */
-  --color-text-subtle: #6b7079;
-  --color-text-inverse: #fdfdfc; /* text on --color-accent */
+  --color-text: #3c2e2a; /* Cola — 12.53:1 on Bone, 12.99:1 on white, 10.70:1 on Tea */
+  --color-text-muted: #625855; /* Dove — 6.65:1 on Bone, 6.89:1 on white, 5.68:1 on Tea */
+  /* Deliberately the same value as --color-text-muted. The palette has exactly
+   * one supporting-text colour, and the guide's own quieter treatment (Cola at
+   * 62% on Bone) measures 3.35:1, which fails AA. Inventing a lighter tint to
+   * keep two distinct tokens would mean shipping text nobody can read, so the
+   * two tokens collapse onto Dove. The names are kept because components use
+   * them to say which text is quiet; they just resolve to the same ink. */
+  --color-text-subtle: #625855;
+  --color-text-inverse: #fbfbf8; /* Bone on Tomato — 4.71:1, an approved pairing */
 
   /* Lines */
-  --color-border: #e3e3df; /* hairlines, dividers, card edges */
-  --color-border-strong: #c9c9c3; /* emphasised edges, blockquote rule */
+  --color-border: #d9d9d9; /* Slate — hairlines, dividers, card edges */
+  /* Off-palette: a 70/30 blend of Slate towards Dove. The guide has no second
+   * line colour, and both palette neighbours are wrong for the job — Slate is
+   * 1.36:1 on Bone (invisible as an emphasised edge) and Dove is 6.65:1 (reads
+   * as text). This lands at 3.79:1 on Bone, 3.93:1 on white and 3.24:1 on Tea:
+   * above the 3:1 floor for a non-text UI boundary on every ground it can be
+   * drawn against, and far enough under Dove that it never reads as a word. */
+  --color-border-strong: #867f7d;
 
-  /* Accent — the one brand colour. Used for links, focus rings, and the
-   * active nav state. Deliberately a single hue: swap this and the site
-   * re-brands. */
-  --color-accent: #1f4ed8;
-  --color-accent-hover: #163bab;
-  --color-accent-subtle: #eaefff; /* accent background wash */
+  /* Accent — Tomato, the one brand accent. Links, focus rings, active states.
+   * 4.71:1 on Bone and 4.88:1 on white: AA as text on both, and Tomato+Bone is
+   * an approved pairing. It is 4.02:1 on Tea, so accent-coloured *text* on the
+   * sunken ground uses --color-accent-hover instead (see section 13). */
+  --color-accent: #cd3e1d;
+  /* Tomato darkened. 6.59:1 on Bone, 6.83:1 on white, 5.63:1 on Tea — the safe
+   * accent for text on any of our grounds, and the hover state everywhere. */
+  --color-accent-hover: #a63118;
+  /* Lilac. A wash only — used as the hover ground under the root CTA, where
+   * the text is --color-accent-hover (5.29:1). Plain Tomato is 3.78:1 on Lilac
+   * and must not be set on it. Tea is the other approved wash but is already
+   * the code ground, so a CTA using it would read as a code well. */
+  --color-accent-subtle: #f4dcea;
 
-  /* Status (used sparingly by Callout etc.) */
-  --color-success: #16704a;
-  --color-warning: #8a5a00;
-  --color-danger: #a52121;
+  /* Status (used sparingly by Callout etc.). The guide has no status palette,
+   * so these are warm derivatives chosen to sit beside Tomato and Tea without
+   * introducing a new hue family. */
+  --color-success: #4f5a2e; /* deepened Tea — 7.15:1 / 7.41:1 / 6.10:1 */
+  --color-warning: #85541a; /* ochre between Tomato and Dove — 6.17:1 / 6.40:1 / 5.27:1 */
+  --color-danger: #cd3e1d; /* Tomato. Same Bone/white-only rule as --color-accent. */
 
-  /* Selection */
-  --color-selection-bg: #d8e2ff;
-  --color-selection-text: #17181c;
+  /* Selection — Lilac ground, Cola text: 10.07:1. */
+  --color-selection-bg: #f4dcea;
+  --color-selection-text: #3c2e2a;
 
   /* ---------------------------------------------------------------------
    * 2. TYPE
    *
-   * System font stacks by default — fast, no network request, no layout
-   * shift. Replace with the Webflow brand faces when they are self-hosted.
+   * ABC Diatype is the brand face; ABC Diatype Semi Mono is the accent/mono
+   * face. Neither is loaded: web licensing is unresolved, so we do not
+   * self-host them and we never load a third-party font CDN. Naming them first
+   * means a locally installed copy is used, and everyone else gets Helvetica
+   * Neue — the fallback the guide sanctions — with no network request and no
+   * layout shift.
+   *
+   * There is no serif in the Ode palette, so there is no --font-serif token.
    * ------------------------------------------------------------------- */
-  --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
-    'Noto Sans', sans-serif;
-  --font-serif: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+  --font-sans: 'ABC Diatype', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'ABC Diatype Semi Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Type scale — fluid between a 360px and a 1200px viewport.
    * step -1 .. step 5. Body copy is --text-base. */
@@ -100,11 +144,19 @@
   --text-3xl: clamp(1.85rem, 1.5rem + 1.5vw, 2.6rem);
   --text-4xl: clamp(2.2rem, 1.6rem + 2.6vw, 3.25rem);
 
-  /* Weights */
+  /* Weights.
+   *
+   * The guide is Regular-only and builds hierarchy from size and tracking, so
+   * display type is set at --weight-medium rather than semibold and nothing on
+   * the site uses --weight-bold. Note `font-synthesis-weight: none` on <body>:
+   * Helvetica Neue often has no real medium, in which case the browser picks
+   * the nearest cut it actually has instead of smearing one. Headings stay
+   * legible as headings because they are two to four steps up the type scale;
+   * the places where weight is the *only* available cue (inline <strong>,
+   * table headers, run-in labels) keep semibold. */
   --weight-normal: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
-  --weight-bold: 700;
 
   /* Line heights */
   --leading-tight: 1.15; /* display headings */
@@ -160,8 +212,8 @@
   --border: var(--border-width) solid var(--color-border);
   --border-strong: var(--border-width) solid var(--color-border-strong);
 
-  --shadow-sm: 0 1px 2px rgb(23 24 28 / 6%);
-  --shadow-md: 0 2px 8px rgb(23 24 28 / 8%);
+  --shadow-sm: 0 1px 2px rgb(60 46 42 / 6%);
+  --shadow-md: 0 2px 8px rgb(60 46 42 / 8%);
 
   /* ---------------------------------------------------------------------
    * 6. FOCUS
@@ -191,50 +243,9 @@
   --z-header: 20;
   --z-skip-link: 100;
 
-  color-scheme: light dark;
-}
-
-/* =============================================================================
- * 9. DARK THEME
- *
- * Token overrides only. No component in this codebase should contain a
- * `prefers-color-scheme` query — if a component needs to change in dark mode,
- * that means a token is missing, so add the token here instead.
- *
- * These are hand-picked values, not inversions: the dark ground is a desatured
- * near-black and the accent is lightened to hold contrast against it.
- * ========================================================================== */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #14151a;
-    --color-surface: #1b1d23;
-    --color-surface-sunken: #101116;
-
-    --color-text: #e9eaee;
-    --color-text-muted: #a1a6b0;
-    /* Same rule as the light theme: 4.8:1 on --color-surface (the card and TOC
-     * ground), 5.3:1 on --color-bg. The previous value cleared 4.5:1 against
-     * the page but not against a card. */
-    --color-text-subtle: #838996;
-    --color-text-inverse: #14151a;
-
-    --color-border: #2b2e37;
-    --color-border-strong: #414653;
-
-    --color-accent: #8ab0ff;
-    --color-accent-hover: #adc6ff;
-    --color-accent-subtle: #1c2439;
-
-    --color-success: #5fc79b;
-    --color-warning: #e0b357;
-    --color-danger: #f08b8b;
-
-    --color-selection-bg: #2c3a5e;
-    --color-selection-text: #e9eaee;
-
-    --shadow-sm: 0 1px 2px rgb(0 0 0 / 40%);
-    --shadow-md: 0 2px 8px rgb(0 0 0 / 45%);
-  }
+  /* Light only: the brand guide sanctions no dark theme and approves no
+   * text-on-dark pairing, so we do not advertise one. */
+  color-scheme: light;
 }
 
 /* =============================================================================
@@ -290,7 +301,7 @@ h4,
 h5,
 h6 {
   margin: 0;
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-medium);
   line-height: var(--leading-tight);
   letter-spacing: var(--tracking-tight);
   text-wrap: balance;
@@ -627,6 +638,14 @@ main:focus:not(:focus-visible) {
   overflow-wrap: break-word;
 }
 
+/* Inline code inside a link sits on the Tea ground, where plain Tomato is
+ * 4.02:1 — below AA, and not a pairing the brand guide approves. The darkened
+ * accent is 5.63:1 there, so links keep their colour cue without failing
+ * contrast. This is the rule that lets --color-accent stay exactly Tomato. */
+a code {
+  color: var(--color-accent-hover);
+}
+
 .code-block {
   position: relative;
   margin: 0;
@@ -657,9 +676,12 @@ main:focus:not(:focus-visible) {
 }
 
 /* Shiki writes `overflow-x: auto` inline when `wrap: false`; we add padding,
- * sizing and colour. `!important` is not needed — inline styles only cover
- * `overflow-x`, `color` and `background-color`, and we override the latter two
- * deliberately in the dark-theme block below. */
+ * sizing and type. astro.config.mjs runs a single light theme (`github-light`),
+ * so Shiki also inlines that theme's own foreground and background on the
+ * <pre>: the block interior is the theme's white, the figure's Tea shows only
+ * at the rounded edge, and every token keeps the contrast github-light was
+ * designed for. That is deliberate — forcing github-light's palette onto the
+ * Tea ground drops its comment and keyword colours to ~3.7:1 and ~4.4:1. */
 .code-block > pre,
 pre.astro-code {
   padding: var(--space-md) var(--space-sm);
@@ -691,27 +713,6 @@ pre.astro-code > code {
 .code-block > pre:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: calc(-1 * var(--focus-ring-width));
-}
-
-/* -----------------------------------------------------------------------------
- * Shiki dual-theme wiring
- *
- * astro.config.mjs sets `themes: { light: 'github-light', dark: 'github-dark' }`
- * with `defaultColor: 'light'`. Shiki therefore inlines the light colours as
- * real values and exposes the dark ones as `--shiki-dark*` custom properties on
- * each token. Swapping them under `prefers-color-scheme: dark` is the only way
- * to override inline styles, which is why `!important` appears here — it is
- * confined to this block.
- * -------------------------------------------------------------------------- */
-@media (prefers-color-scheme: dark) {
-  .astro-code,
-  .astro-code span {
-    color: var(--shiki-dark) !important;
-    background-color: var(--shiki-dark-bg) !important;
-    font-style: var(--shiki-dark-font-style) !important;
-    font-weight: var(--shiki-dark-font-weight) !important;
-    text-decoration: var(--shiki-dark-text-decoration) !important;
-  }
 }
 
 /* =============================================================================

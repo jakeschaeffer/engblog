@@ -1,7 +1,12 @@
-# Ode Engineering
+# Engineering
 
-The engineering publication. Astro 7, static output, MDX posts, deployed on
+Ode's engineering publication. Astro 7, static output, MDX posts, deployed on
 Vercel.
+
+The publication is called **Engineering**; the company is **Ode** (title-case
+in prose — the all-caps spelling belongs to the logo artwork only). Both names
+come from `src/lib/site.ts`: `SITE_NAME` for the publication, `BRAND_NAME` for
+the company.
 
 Writing a post? Go to [AUTHORING.md](AUTHORING.md). This file is for people
 working on the site itself.
@@ -238,7 +243,7 @@ organised into numbered sections:
 | Section                   | Tokens                                                                                                                              |
 | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | 1. COLOUR                 | `--color-bg`, `--color-surface`, `--color-text*`, `--color-border*`, `--color-accent*`, `--color-success/warning/danger`, selection |
-| 2. TYPE                   | `--font-sans/serif/mono`, `--text-xs … --text-4xl` (fluid `clamp()`), weights, `--leading-*`, `--tracking-*`                        |
+| 2. TYPE                   | `--font-sans/mono`, `--text-xs … --text-4xl` (fluid `clamp()`), weights, `--leading-*`, `--tracking-*`                              |
 | 3. SPACING                | `--space-3xs … --space-3xl`                                                                                                         |
 | 4. MEASURE & LAYOUT       | `--measure`, `--measure-narrow`, `--width-content/wide/full`, `--width-toc`, `--gutter`                                             |
 | 5. RADIUS, BORDER, SHADOW | `--radius-xs … --radius-pill`, `--border*`, `--shadow-sm/md`                                                                        |
@@ -246,16 +251,58 @@ organised into numbered sections:
 | 7. MOTION                 | `--duration-fast/base`, `--easing`                                                                                                  |
 | 8. Z-INDEX                | `--z-base/sticky/header/skip-link`                                                                                                  |
 
-The dark palette is **section 9**, a `@media (prefers-color-scheme: dark)` block
-overriding the same token names with hand-picked values (not an inversion).
-Dark mode is media-query only: no toggle, no client JS, no localStorage.
+### The palette is the Ode brand palette
 
-**This is the one place to align the site with Webflow brand styling later.**
-Components read tokens and never hard-code a colour, size or radius, so a
-re-brand is: replace the values in section 1 and the fonts in section 2, keep
-the token _names_, then re-check section 9 separately. The file header spells
-out the same procedure. No CSS framework, no utility classes — component styles
-are Astro scoped `<style>` blocks that consume these tokens.
+Section 1 is the guide's colours, under the guide's names: Bone `#FBFBF8` (the
+page), Tea `#E8EBD7` (code wells and sunken panels), Lilac `#F4DCEA` (the accent
+wash and text selection), Slate `#D9D9D9` (hairlines), Dove `#625855`
+(supporting text), Cola `#3C2E2A` (body copy and headings) and Tomato `#CD3E1D`
+(the one accent). Blue Gray and Bistre are in the guide but unused here, and the
+guide's "Pale Gray" is defective — labelled `#5EA6B1`, filled `#CEE5EE` — so it
+is not used at all.
+
+The guide recommends against accent colours for text. Tomato is the single
+exception, and only where the guide's own approved pairings back it up: on Bone
+(4.71:1) and on white (4.88:1). It is never set on Tea, where it measures
+4.02:1 — `global.css` routes accent-coloured text on the sunken ground to
+`--color-accent-hover` instead.
+
+**Sections 3–7 are not brand values.** The guide specifies no spacing, radius,
+line-height or letter-spacing, so those scales are ours, tuned for long-form
+reading. Do not "correct" them against the guide.
+
+### There is no dark theme
+
+The guide sanctions none, and approves no text-on-dark pairing, so the site is
+light-only: `color-scheme: light`, one Shiki theme (`github-light`), and no
+`@media (prefers-color-scheme: dark)` block anywhere in the codebase. A
+component that seems to need one needs a token instead.
+
+### Type
+
+`--font-sans` is `'ABC Diatype', 'Helvetica Neue', Helvetica, Arial,
+sans-serif`; `--font-mono` leads with `'ABC Diatype Semi Mono'`. Neither Diatype
+face is loaded: web licensing is unresolved, so they are **not** self-hosted and
+**never** fetched from a third-party font CDN. Naming them first picks up a
+locally installed copy; everyone else gets Helvetica Neue, the fallback the
+guide sanctions. There is no `--font-serif` — the palette has no serif.
+
+The guide is Regular-only and builds hierarchy from size and tracking, so
+display type is `--weight-medium` and nothing uses `--weight-bold`. Weight is
+kept as an emphasis cue only where size cannot do the job: inline `<strong>`,
+table headers, run-in labels.
+
+### Contrast is tested, not eyeballed
+
+`src/styles/contrast.test.ts` reads the hex values straight out of
+`global.css`, implements WCAG 2.x luminance and ratio, and asserts every text
+token against every ground it can sit on (4.5:1) plus the line and focus
+colours against the non-text floor (3:1). A palette regression fails
+`npm run verify`.
+
+Components read tokens and never hard-code a colour, size or radius. No CSS
+framework, no utility classes — component styles are Astro scoped `<style>`
+blocks that consume these tokens.
 
 ---
 
@@ -386,18 +433,18 @@ layouts or CSS. It takes a few minutes.
       scroll). Reach every link, button and control in a sensible order; nothing
       traps focus; `Esc` closes anything that opens.
 - [ ] **Visible focus on every control.** A focus ring on every interactive
-      element, in both light and dark mode, with enough contrast against its
-      background. Nothing may set `outline: none` without an equally visible
-      replacement.
+      element, with enough contrast against its background. Nothing may set
+      `outline: none` without an equally visible replacement.
 - [ ] **Heading outline.** One `<h1>` per page. No skipped levels. Read the
       headings alone (browser reading-mode or an outline extension) — they
       should summarise the article.
 - [ ] **Alt text on every image.** Meaningful images describe what they show;
       decorative images use `alt=""`. No filenames, no "image of".
-- [ ] **Colour contrast.** Body text, muted text, link text, code, and callout
-      text against their actual backgrounds, in **both** light and dark mode.
-      4.5:1 for body text, 3:1 for large text and UI borders. Test the dark
-      palette separately — it is hand-picked, not derived.
+- [ ] **Colour contrast.** `src/styles/contrast.test.ts` already proves the
+      _tokens_ pass — 4.5:1 for text, 3:1 for UI borders — so this pass is about
+      combinations it cannot see: text over images, text over a hover ground a
+      component introduces, and anything a post sets inline. The site is
+      light-only, so there is no second palette to test.
 - [ ] **200% zoom and 320px width.** Browser zoom to 200%, and a 320px-wide
       viewport: **no horizontal page scroll**. Code blocks and wide tables are
       allowed to scroll — but inside their own container, never the page.
@@ -415,8 +462,9 @@ layouts or CSS. It takes a few minutes.
 - [ ] **Sign off on the default OG card's wording and mark.**
       `public/images/og-default.png` (1200×630 raster — social crawlers do not
       render an SVG `og:image`) is built from the site's own tokens and says
-      "Ode Engineering" over the site description. It is deliberately plain. If
-      brand has a wordmark they want on it, edit
+      "Ode Engineering" over the site description, and still uses the
+      pre-brand blue palette — it is on the phase-2 list along with the logo
+      SVGs. Edit
       `public/images/og-default.svg`, regenerate per `docs/images.md`, and
       re-check the preview in Slack and on X before announcing.
 - [ ] **Set `SITE_URL` in Vercel production** to the canonical origin, no

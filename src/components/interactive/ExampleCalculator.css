@@ -10,8 +10,8 @@
  *   1. Every value is a custom property from src/styles/global.css. Nothing in
  *      this file hard-codes a colour, size or radius, so re-branding the site
  *      re-brands the demo.
- *   2. There is no `prefers-color-scheme` query. Dark mode is inherited for
- *      free because the tokens themselves change.
+ *   2. There is no `prefers-color-scheme` query anywhere in this codebase. The
+ *      Ode brand guide sanctions no dark theme, so the site is light-only.
  *
  * Class names are prefixed `ex-calc` and are only used by ExampleCalculator.tsx
  * — this is a component stylesheet, not a set of utilities.

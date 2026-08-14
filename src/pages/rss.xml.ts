@@ -26,6 +26,7 @@ import type { APIRoute } from 'astro';
 
 import { getPublishedPosts } from '@/lib/posts';
 import {
+  BRAND_NAME,
   SITE_DESCRIPTION,
   SITE_LANG,
   SITE_NAME,
@@ -38,7 +39,10 @@ export const GET: APIRoute = async () => {
   const posts = await getPublishedPosts();
 
   return rss({
-    title: SITE_NAME,
+    // A feed title is read standalone, in a reader listing full of other
+    // feeds, so this is the one place the publication is qualified by the
+    // company that publishes it.
+    title: `${SITE_NAME} — ${BRAND_NAME}`,
     description: SITE_DESCRIPTION,
     site: SITE_URL,
     items: posts.map((post) => ({

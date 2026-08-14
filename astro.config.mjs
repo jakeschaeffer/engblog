@@ -104,17 +104,14 @@ export default defineConfig({
   ],
 
   markdown: {
-    // Shiki is the default highlighter. We ship both a light and a dark theme
-    // and let CSS pick between them via `prefers-color-scheme` (see
-    // `src/styles/global.css` -> "Shiki dual-theme wiring"). `defaultColor:
-    // 'light'` means the light theme is inlined as real colours and the dark
-    // theme is available as `--shiki-dark*` custom properties.
+    // Shiki is the default highlighter, running a single light theme. The Ode
+    // brand guide sanctions no dark theme and approves no text-on-dark
+    // pairing, so the site is light-only and there is nothing for a second
+    // theme to switch to. One theme also means Shiki inlines real colours
+    // rather than `--shiki-dark*` custom properties, so `src/styles/global.css`
+    // needs no `!important` overrides to swap them.
     shikiConfig: {
-      themes: {
-        light: 'github-light',
-        dark: 'github-dark',
-      },
-      defaultColor: 'light',
+      theme: 'github-light',
       // Code blocks scroll horizontally instead of soft-wrapping. Astro adds
       // `overflow-x: auto` to the <pre> for us when wrap is false.
       wrap: false,

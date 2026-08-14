@@ -1,17 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Ode Engineering">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Ode">
   <!--
-    Ode Engineering monogram.
+    Placeholder monogram — TODO(phase-2): replace with the real Ode mark.
     A stroked "O" with a single flat cut on the right edge — restrained, reads
     at 16px, no external references, no embedded fonts.
-    Colours follow the reader's theme via prefers-color-scheme.
+    Ode brand colours: Bone ground, Cola mark. Light only — the guide sanctions
+    no dark theme, so there is no prefers-color-scheme switch here.
   -->
   <style>
-    .bg { fill: #fdfdfc; }
-    .fg { fill: none; stroke: #17181c; }
-    @media (prefers-color-scheme: dark) {
-      .bg { fill: #14151a; }
-      .fg { stroke: #e9eaee; }
-    }
+    .bg { fill: #fbfbf8; }
+    .fg { fill: none; stroke: #3c2e2a; }
   </style>
   <rect class="bg" width="32" height="32" rx="6" />
   <circle class="fg" cx="16" cy="16" r="8" stroke-width="3" />
