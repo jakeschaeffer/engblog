@@ -86,7 +86,13 @@ const BRAND_SITE_URL = 'https://ode.com';
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-2xs) var(--space-md);
+    /* The column gap is a wrap threshold, not a look: `space-between` sets the
+     * visible distance at every width where the row has slack, so this value
+     * is only ever read at the point the two items stop fitting. --space-sm
+     * keeps the lockup and the button on one line down to 375px, which is
+     * where they sat before the button was restyled; --space-md would give up
+     * that line one device-width early and change nothing else. */
+    gap: var(--space-2xs) var(--space-sm);
     padding-block: var(--space-sm);
   }
 
@@ -137,31 +143,72 @@ const BRAND_SITE_URL = 'https://ode.com';
     text-decoration-color: var(--color-border-strong);
   }
 
-  /* A secondary action, not the page's accent: it leaves the publication, so
-   * it must not compete with the article links inside it. Quiet outline,
-   * brand-neutral ink, Tea on hover.
+  /* The marketing site's nav CTA, rebuilt out of our tokens.
+   *
+   * ode.com's header button (Webflow's `.button` + its "secondary" variant, in
+   * ode-ai-staging.shared.ea5946953.css) is an outline, not a fill: transparent
+   * ground, hairline edge, uppercase mono at 12px/400 with generous tracking,
+   * softly rounded — and on hover the edge and the ink both go to full Cola.
+   * That is the character reproduced here, token for token:
+   *
+   *   ode.com                                    here
+   *   background-color: #0000                    (none — the header ground)
+   *   border: 1px solid cola@20% (~#d5d2cf)      --border-width / --color-border (Slate)
+   *   color: cola@62%                            --color-text  (see below)
+   *   border-radius: .625rem                     --radius-md
+   *   padding: .6rem 1rem                        --space-2xs / --space-xs
+   *   font: mono, .75rem/1em, 400, uppercase     --font-mono / --text-xs / --weight-normal
+   *   letter-spacing: .1em                       --tracking-wide (see below)
+   *   :hover border+color -> Cola                --color-text
+   *   :focus-visible 2px accent, 2px offset      the global ring, unchanged
+   *
+   * Two deliberate departures:
+   *
+   *   - The ink is full Cola, not ode.com's Cola-at-62%. That tint measures
+   *     3.35:1 on Bone and fails AA; global.css already refuses it once, in the
+   *     note on --color-text-subtle, and this is the same refusal. Cola on Bone
+   *     is 12.53:1.
+   *   - Tracking is --tracking-wide (0.04em), not ode.com's 0.1em. Every
+   *     uppercase label on this site is set at --tracking-wide, and one button
+   *     tracked twice as loose as the eyebrows around it would read as an
+   *     import rather than a part of the page. It also keeps the header on one
+   *     line at 390px, which 0.1em does not.
+   *   - Horizontal padding is --space-xs (12px), not ode.com's 1rem. Their
+   *     button sits in a nav with nothing else in it; ours shares a 358px row
+   *     with the brand lockup, and the extra 8px is the difference between the
+   *     header holding one line at 375px and not.
+   *
+   * Slate is a genuinely faint edge (1.36:1 on Bone) — but so is ode.com's, and
+   * it is the nearest thing the palette has to Cola-at-20%. The control is
+   * identified by its label, and hover and focus both resolve to something
+   * emphatic, so nothing depends on seeing the resting hairline.
    *
    * `:focus-visible` is not declared here — the global ring in section 6 of
-   * global.css already applies to it, and the accent ring is 4.02:1 against
-   * Tea and 4.71:1 against Bone, both above the 3:1 UI floor. */
+   * global.css already applies to it, and the accent ring is 4.71:1 against
+   * Bone, well above the 3:1 UI floor. */
   .site-header__back {
     display: inline-block;
-    padding: var(--space-3xs) var(--space-xs);
-    border: var(--border-width) solid var(--color-border-strong);
-    border-radius: var(--radius-sm);
+    padding: var(--space-2xs) var(--space-xs);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
     color: var(--color-text);
-    font-size: var(--text-sm);
-    font-weight: var(--weight-medium);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-normal);
+    line-height: 1;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
     text-decoration: none;
+    /* The label is one unbreakable unit; it must never stack inside the pill. */
+    white-space: nowrap;
     transition:
-      background-color var(--duration-fast) var(--easing),
+      color var(--duration-fast) var(--easing),
       border-color var(--duration-fast) var(--easing);
   }
 
+  /* No fill on hover — ode.com's stays transparent and moves the edge instead. */
   .site-header__back:hover {
-    background-color: var(--color-surface-sunken);
-    border-color: var(--color-text-muted);
-    /* Cola on Tea is 10.70:1 — the brand's second approved text setting. */
+    border-color: var(--color-text);
     color: var(--color-text);
   }
 </style>
