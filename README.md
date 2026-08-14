@@ -459,14 +459,14 @@ layouts or CSS. It takes a few minutes.
 
 ## 12. Launch checklist
 
-- [ ] **Sign off on the default OG card's wording and mark.**
+- [ ] **Sign off on the default OG card's wording.**
       `public/images/og-default.png` (1200×630 raster — social crawlers do not
-      render an SVG `og:image`) is built from the site's own tokens and says
-      "Ode Engineering" over the site description, and still uses the
-      pre-brand blue palette — it is on the phase-2 list along with the logo
-      SVGs. Edit
-      `public/images/og-default.svg`, regenerate per `docs/images.md`, and
-      re-check the preview in Slack and on X before announcing.
+      render an SVG `og:image`) now carries the real Ode lockup on Bone with
+      "Engineering" and the site description in Cola and Dove, and a Tomato
+      rule. The palette and the artwork are settled; what still wants a human
+      is the copy. Edit `public/images/og-default.svg`, regenerate per
+      `docs/images.md`, and re-check the preview in Slack and on X before
+      announcing.
 - [ ] **Set `SITE_URL` in Vercel production** to the canonical origin, no
       trailing slash. Confirm the built HTML contains that origin in
       `<link rel="canonical">`, `og:url`, `og:image`, the RSS channel and the

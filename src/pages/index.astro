@@ -41,7 +41,13 @@ import { BASE_PATH, RSS_PATH, SITE_DESCRIPTION, SITE_NAME } from '@/lib/site';
     </p>
 
     <p class="root__aside">
-      Everything is published under <code>{BASE_PATH}</code>. There is also an
+      {
+        /* `&#32;` is load-bearing, same class of bug as the one in
+          SiteFooter: Astro's compiler drops the whitespace that sits between
+          a text node and the element after it, so "an" and the <a> render as
+          "anRSS feed". An explicit space entity survives compilation. */
+      }
+      Everything is published under <code>{BASE_PATH}</code>. There is also an&#32;
       <a href={RSS_PATH}>RSS feed</a>.
     </p>
   </div>

@@ -49,16 +49,31 @@ post's `ogImage` frontmatter field at it.
 is what the site actually references. Edit the SVG, then:
 
 ```bash
-node -e "require('sharp')('public/images/og-default.svg',{density:96}).resize(1200,630).flatten({background:'#fdfdfc'}).png({compressionLevel:9}).toFile('public/images/og-default.png')"
+node -e "require('sharp')('public/images/og-default.svg',{density:96}).resize(1200,630).flatten({background:'#FBFBF8'}).png({compressionLevel:9}).toFile('public/images/og-default.png')"
 ```
 
-Two things to know about that command:
+Four things to know about that command:
 
-- The SVG sets type in `Helvetica, Arial, sans-serif`. Rendering resolves that
-  against the _system_ font stack, so a machine without Arial (or a
-  metric-compatible substitute such as Liberation Sans) will produce different
-  line lengths. Eyeball the output before committing it.
-- The card's colours are copied by hand from section 1 of
-  `src/styles/global.css` (`--color-bg`, `--color-accent`, `--color-text`,
-  `--color-text-muted`). A file in `public/` cannot read CSS custom properties,
-  so a re-brand means updating both.
+- `density: 96` renders the SVG 1:1 — it already declares `width="1200"
+height="630"` — so `resize` is a no-op assertion that the output really is
+  1200×630. Keep both.
+- The SVG sets type in `ABC Diatype, Helvetica Neue, Helvetica, Arial,
+sans-serif` — the site's own stack. Nothing self-hosts Diatype and no font
+  CDN is loaded, so rendering resolves this against the _system_ font stack
+  and in practice lands on Arial or a metric-compatible substitute such as
+  Liberation Sans. A machine with none of them will produce different line
+  lengths, and the two description lines are broken by hand (SVG `<text>` does
+  not wrap). **Open the PNG and look at it before committing.**
+- The card's colours are the Ode palette, copied by hand from section 1 of
+  `src/styles/global.css` — Bone (`--color-bg`) ground, Cola (`--color-text`)
+  headline, Dove (`--color-text-muted`) description, Tomato (`--color-accent`)
+  rules. A file in `public/` cannot read CSS custom properties, so a re-brand
+  means updating both.
+- Do not write a literal `--` inside the SVG's comments. It is illegal in XML
+  and librsvg rejects the whole file with "corrupt header", which is why the
+  token names in there are spelled without their leading dashes.
+
+The Ode lockup on the card is inlined as outlined paths from the Figma export,
+so it stays crisp at any density and needs no font and no external reference.
+The type says only "Engineering" — the lockup already says "Ode", and the two
+should never be concatenated into an "Ode Engineering" sub-brand.
