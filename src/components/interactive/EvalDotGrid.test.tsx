@@ -163,6 +163,59 @@ describe('EvalDotGrid — the detail panel', () => {
     expect(document.activeElement).toBe(dot);
   });
 
+  it('leaves focus alone on Escape even when the open clip is a different mark', async () => {
+    // The mark holding focus need not be the one the panel is describing. APG
+    // asks for focus to stay put here: nothing focusable is destroyed by the
+    // collapse, so yanking focus over to clip 6 would take it off the mark the
+    // reader walked to.
+    const user = userEvent.setup();
+    render(<EvalDotGrid />);
+    dotFor('evt-mock-0001').focus();
+
+    await user.keyboard('{ArrowRight}');
+    expect(document.activeElement).toBe(dotFor('evt-mock-0002'));
+    // Clip 6 is what is open, and it is not the mark with focus.
+    expect(dotFor(DEFAULT_DETAIL_ITEM_ID).getAttribute('aria-expanded')).toBe('true');
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByText(/No clip open/)).toBeDefined();
+    expect(document.activeElement).toBe(dotFor('evt-mock-0002'));
+  });
+
+  it('does nothing on Escape when no clip is open, so the key can bubble', async () => {
+    const user = userEvent.setup();
+    render(<EvalDotGrid initialItemId="evt-mock-nope" />);
+    const dot = dotFor('evt-mock-0004');
+    dot.focus();
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByText(/No clip open/)).toBeDefined();
+    expect(document.activeElement).toBe(dot);
+  });
+
+  it('returns focus to the originating mark on Escape from the close button, wherever focus had been', async () => {
+    // The close button is about to stop existing, so this is the case where
+    // focus *must* be moved — and it must go to the mark that opened the panel,
+    // not to whichever mark last had the tab stop.
+    const user = userEvent.setup();
+    render(<EvalDotGrid />);
+    dotFor('evt-mock-0001').focus();
+    await user.keyboard('{ArrowRight}');
+
+    await user.click(dotFor('evt-mock-0019'));
+    const close = screen.getByRole('button', { name: /^Close/ });
+    close.focus();
+    expect(document.activeElement).toBe(close);
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByText(/No clip open/)).toBeDefined();
+    expect(document.activeElement).toBe(dotFor('evt-mock-0019'));
+    expect(dotFor('evt-mock-0019').getAttribute('tabindex')).toBe('0');
+  });
+
   it('collapses on Escape from inside the panel and returns focus to the mark that opened it', async () => {
     const user = userEvent.setup();
     render(<EvalDotGrid />);
@@ -280,6 +333,61 @@ describe('EvalDotGrid — keyboard navigation', () => {
 
     await user.keyboard('{Home}');
     expect(document.activeElement).toBe(dotFor('evt-mock-0001'));
+  });
+
+  it('lets modifier chords through instead of swallowing them', async () => {
+    // Ctrl+Home scrolls the document, Cmd+Left and Alt+Left are Back. If the
+    // field claimed them, a reader would lose the browser shortcut for as long
+    // as focus sat on a mark.
+    const user = userEvent.setup();
+    render(<EvalDotGrid />);
+    const start = dotFor('evt-mock-0015');
+    start.focus();
+
+    for (const chord of [
+      '{Control>}{Home}{/Control}',
+      '{Control>}{End}{/Control}',
+      '{Meta>}{ArrowLeft}{/Meta}',
+      '{Alt>}{ArrowLeft}{/Alt}',
+      '{Control>}{ArrowRight}{/Control}',
+    ]) {
+      await user.keyboard(chord);
+      expect([chord, document.activeElement]).toStrictEqual([chord, start]);
+    }
+  });
+
+  it('does not consume the default action of a modifier chord', async () => {
+    const user = userEvent.setup();
+    render(<EvalDotGrid />);
+    const start = dotFor('evt-mock-0015');
+    start.focus();
+
+    const defaultPrevented: boolean[] = [];
+    const record = (event: Event) => {
+      defaultPrevented.push(event.defaultPrevented);
+    };
+    document.addEventListener('keydown', record);
+    try {
+      await user.keyboard('{Control>}{Home}{/Control}');
+      await user.keyboard('{Meta>}{ArrowLeft}{/Meta}');
+      // A bare arrow, for contrast: that one the field does claim.
+      await user.keyboard('{ArrowRight}');
+    } finally {
+      document.removeEventListener('keydown', record);
+    }
+
+    expect(defaultPrevented.slice(0, 2)).toStrictEqual([false, false]);
+    expect(defaultPrevented.at(-1)).toBe(true);
+  });
+
+  it('leaves the panel open when Escape arrives as part of a chord', async () => {
+    const user = userEvent.setup();
+    render(<EvalDotGrid />);
+    dotFor(DEFAULT_DETAIL_ITEM_ID).focus();
+
+    await user.keyboard('{Control>}{Escape}{/Control}');
+
+    expect(screen.getByRole('heading', { name: `Clip ${DEFAULT_DETAIL_ITEM_ID}` })).toBeDefined();
   });
 
   it('opens a clip from the keyboard alone', async () => {

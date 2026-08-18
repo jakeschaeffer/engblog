@@ -156,6 +156,54 @@ describe('EvalMetricsPanel — the projection control', () => {
     expect(screen.getByText(/projects/).textContent).toContain(String(CLIPS_PER_SUBSCRIBER_MAX));
   });
 
+  it('says so before blur when the step grid moved an in-range number', async () => {
+    // 1234 is inside the range and still is not what the projection is computed
+    // from — the step rounds it to 1250. A range-only check misses this, and the
+    // field still reads 1234 until it is blurred, so without a notice the reader
+    // sees a projection built on a number nothing on screen shows.
+    const user = userEvent.setup();
+    render(<EvalMetricsPanel />);
+    const field = screen.getByLabelText('Clips per subscriber per month, exact value');
+
+    await user.clear(field);
+    await user.type(field, '1234');
+
+    expect(field).toHaveProperty('value', '1234');
+    const notice = screen.getByText(/^Adjusted:/);
+    expect(notice.textContent).toContain('1234');
+    expect(notice.textContent).toContain('1250');
+    expect(screen.getByText(/projects/).textContent).toContain('1250');
+  });
+
+  it('shows no notice for a value the control can actually take', async () => {
+    const user = userEvent.setup();
+    render(<EvalMetricsPanel />);
+    const field = screen.getByLabelText('Clips per subscriber per month, exact value');
+
+    await user.clear(field);
+    await user.type(field, '1250');
+
+    expect(screen.queryByText(/^Adjusted:/)).toBeNull();
+  });
+
+  it('announces the adjustment, rather than only showing it', async () => {
+    // It appears and disappears while focus stays in the number field, so a
+    // screen-reader user hears about it only if it is inside a live region.
+    const user = userEvent.setup();
+    render(<EvalMetricsPanel />);
+    const field = screen.getByLabelText('Clips per subscriber per month, exact value');
+
+    await user.clear(field);
+    await user.type(field, '1234');
+
+    expect(
+      screen
+        .getByText(/^Adjusted:/)
+        .closest('[aria-live]')
+        ?.getAttribute('aria-live'),
+    ).toBe('polite');
+  });
+
   it('normalises the number field on blur so the two controls agree', async () => {
     const user = userEvent.setup();
     render(<EvalMetricsPanel />);
@@ -180,5 +228,17 @@ describe('EvalMetricsPanel — the projection control', () => {
 
     expect(live.getAttribute('aria-live')).toBe('polite');
     expect(screen.getByRole('table').getAttribute('aria-live')).toBeNull();
+  });
+
+  it('makes the sideways scroller reachable and named, not a pointer-only affordance', () => {
+    // The wrapper scrolls and holds nothing focusable, so without a tab stop the
+    // right-hand columns are unreachable by keyboard (WCAG 2.1.1). The caption
+    // is what stops that tab stop from announcing as an unnamed region.
+    render(<EvalMetricsPanel />);
+    const region = screen.getByRole('region', { name: /Detection quality across 29 mock clips/ });
+
+    expect(region.className).toContain('eval-metrics__table-wrap');
+    expect(region.getAttribute('tabindex')).toBe('0');
+    expect(within(region).getByRole('table')).toBeDefined();
   });
 });

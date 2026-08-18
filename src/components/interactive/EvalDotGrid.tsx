@@ -33,10 +33,18 @@
  *   - 29 marks are **one** tab stop, not 29. The field uses a roving tabindex:
  *     Tab reaches the field, then arrows move between marks — across group
  *     boundaries, because the index is flat — and Home/End jump to the ends.
- *   - `Escape` collapses the panel and returns focus to the mark that opened
- *     it. It is handled on the marks and on the panel's close button, which
- *     are the only focusable things in the island, so no static element needs
- *     a key handler to make it work.
+ *   - `Escape` collapses the panel from either side of it, and what happens to
+ *     focus differs because the two situations differ. Pressed on a **mark**,
+ *     focus stays exactly where it is: the marks outlive the collapse, so
+ *     moving focus would be taking it off the mark the reader chose. Pressed
+ *     inside the **panel** — its close button is the only focusable thing in
+ *     there — focus returns to the mark that opened the panel, because the
+ *     element holding focus is about to stop existing. Clicking Close does the
+ *     same. Those two are the only focusable things in the island, so no
+ *     static element needs a key handler to make it work.
+ *   - Modifier chords belong to the browser and the OS, not to the field.
+ *     `Ctrl+Home`, `Cmd+←`, `Alt+←` and friends are let through untouched
+ *     rather than swallowed by the arrow-key handler.
  *   - The confidence bar is decoration; the number beside it is the value.
  *   - No `<video>`: the demo ships no media (see AUTHORING §5 rule 7), so the
  *     clip is represented by a labelled placeholder frame and the clip path is
@@ -121,7 +129,6 @@ export default function EvalDotGrid({
   const baseId = useId();
   const panelId = `${baseId}-detail`;
   const detailHeadingId = `${baseId}-detail-heading`;
-  const legendId = `${baseId}-legend`;
 
   const groups = groupByPrediction(items);
   const selectedItem = selectedId === null ? undefined : findItem(items, selectedId);
@@ -139,8 +146,16 @@ export default function EvalDotGrid({
   }
 
   function onDotKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number): void {
+    // Ctrl+Home scrolls the document, Cmd+Left and Alt+Left are Back. A chord
+    // is the browser's or the OS's, so the field never claims one — and never
+    // calls preventDefault() on one.
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+
     if (event.key === 'Escape') {
-      // Focus is already on the mark, so there is nothing to restore.
+      // Focus stays on the mark that has it, which may not be the mark that
+      // opened the panel. Nothing focusable is destroyed by the collapse, so
+      // there is nothing to restore, and moving focus to the clip that happened
+      // to be open would take it off the mark the reader is standing on.
       if (selectedId !== null) {
         event.preventDefault();
         setSelectedId(null);
@@ -161,7 +176,7 @@ export default function EvalDotGrid({
   return (
     <div className="eval-dots">
       <div className="eval-dots__header">
-        <p className="eval-dots__legend" id={legendId}>
+        <p className="eval-dots__legend">
           <span className="eval-dots__legend-item">
             <span aria-hidden="true" className="eval-dots__mark eval-dots__mark--correct" />
             Correct — hollow round mark
@@ -214,7 +229,14 @@ export default function EvalDotGrid({
                 </div>
               </dl>
 
-              <ul aria-describedby={legendId} className="eval-dots__field">
+              {/*
+                No `aria-describedby` on this list: a screen reader does not
+                surface a container description when focus lands on a button
+                inside it, so pointing at the legend from here would announce to
+                nobody. The visible legend, plus each mark's own sentence of a
+                name, is what actually carries the two states.
+              */}
+              <ul className="eval-dots__field">
                 {group.items.map((item, indexInGroup) => {
                   const index = group.startIndex + indexInGroup;
                   const correct = isCorrect(item);
