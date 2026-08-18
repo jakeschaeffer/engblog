@@ -8,7 +8,7 @@
  * No `astro:*` imports here — keep it that way.
  */
 
-import { DEFAULT_OG_IMAGE, SITE_LANG, SITE_NAME, absoluteUrl } from './site';
+import { BRAND_NAME, DEFAULT_OG_IMAGE, SITE_LANG, absoluteUrl } from './site';
 import { toISODate } from './post-utils';
 
 /** Author credit as it appears in post frontmatter. */
@@ -80,8 +80,9 @@ export function buildArticleStructuredData(input: ArticleStructuredDataInput): A
     dateModified: toISODate(input.updatedAt ?? input.publishedAt),
     author: input.authors.map(toPersonNode),
     publisher: {
+      // The Organization is the company, not the publication.
       '@type': 'Organization',
-      name: SITE_NAME,
+      name: BRAND_NAME,
     },
     mainEntityOfPage: {
       '@type': 'WebPage',

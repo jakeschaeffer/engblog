@@ -38,8 +38,27 @@ export const SITE_URL: string = RAW_SITE_URL.replace(/\/+$/, '');
  */
 export const BASE_PATH = '/engineering/' as const;
 
-/** Publication title. Used as the site name in OG tags, RSS and JSON-LD. */
-export const SITE_NAME = 'Ode Engineering' as const;
+/**
+ * The organisation that publishes this site.
+ *
+ * Always title-case "Ode" in prose. The all-caps spelling exists only inside
+ * the logo artwork and must never be typed as text.
+ *
+ * This is deliberately separate from `SITE_NAME`: `SITE_NAME` is the
+ * *publication*, `BRAND_NAME` is the *company*. Use this one for the
+ * copyright line, `og:site_name`, and the structured-data / RSS publisher —
+ * anywhere the answer to "who is behind this?" is the company.
+ */
+export const BRAND_NAME = 'Ode' as const;
+
+/**
+ * Publication title. Used as the page title and the `<h1>` of the index.
+ *
+ * Just "Engineering". The site is mounted at `/engineering/` under the Ode
+ * property and the header already carries the Ode lockup, so repeating the
+ * company name in the title only makes every browser tab longer.
+ */
+export const SITE_NAME = 'Engineering' as const;
 
 /** One-line description. Used as the default meta description and RSS channel description. */
 export const SITE_DESCRIPTION =
@@ -54,9 +73,14 @@ export const SITE_DESCRIPTION =
  */
 export const DEFAULT_OG_IMAGE = '/images/og-default.png' as const;
 
-/** Used when a post omits an author, or when an author entry omits a role. */
+/**
+ * Used when a post omits an author, or when an author entry omits a role.
+ *
+ * The byline falls back to the company, not the publication: an unattributed
+ * post is written by Ode, and "Engineering" is the role that follows it.
+ */
 export const DEFAULT_AUTHOR = {
-  name: 'Ode Engineering',
+  name: BRAND_NAME,
   role: 'Engineering',
 } as const;
 

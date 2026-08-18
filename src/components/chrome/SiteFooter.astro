@@ -6,7 +6,7 @@
  * beacon: nothing here should be a reason for a reader to leave the article
  * they just finished.
  */
-import { BASE_PATH, RSS_PATH, SITE_NAME } from '@/lib/site';
+import { BASE_PATH, BRAND_NAME, RSS_PATH } from '@/lib/site';
 
 // UTC so a build machine's timezone can never render a different year than CI.
 const year = new Date().getUTCFullYear();
@@ -14,10 +14,12 @@ const year = new Date().getUTCFullYear();
 
 <footer class="site-footer">
   <div class="container site-footer__inner">
-    <p class="site-footer__colophon">
-      &copy; {year}
-      {SITE_NAME}
-    </p>
+    {
+      /* One expression, not two: Astro drops the whitespace *between* adjacent
+        expressions, so `{year} {BRAND_NAME}` on separate lines renders as
+        "2026Ode". */
+    }
+    <p class="site-footer__colophon">&copy; {`${year} ${BRAND_NAME}`}</p>
 
     <nav class="site-footer__nav" aria-label="Footer">
       <ul class="site-footer__list">

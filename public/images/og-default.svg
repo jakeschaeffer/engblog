@@ -1,43 +1,80 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Ode Engineering">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Engineering — Ode">
   <!--
     SOURCE FILE for the default Open Graph card. Not referenced by the site:
     social crawlers (X, LinkedIn, Slack, Facebook, iMessage) do not render an
     SVG og:image, so `DEFAULT_OG_IMAGE` in src/lib/site.ts points at the PNG
     rendered from this file. Edit this, then regenerate:
 
-      node -e "require('sharp')('public/images/og-default.svg',{density:96}).resize(1200,630).flatten({background:'#fdfdfc'}).png({compressionLevel:9}).toFile('public/images/og-default.png')"
+      node -e "require('sharp')('public/images/og-default.svg',{density:96}).resize(1200,630).flatten({background:'#FBFBF8'}).png({compressionLevel:9}).toFile('public/images/og-default.png')"
 
-    See docs/images.md. Colours are lifted from src/styles/global.css section 1
-    (--color-bg, --color-accent, --color-text, --color-text-muted); keep them in
-    sync by hand — an SVG in public/ cannot read CSS custom properties.
+    See docs/images.md. Colours are the Ode palette, lifted from section 1 of
+    src/styles/global.css: Bone is the `color-bg` token, Cola is `color-text`,
+    Dove is `color-text-muted`, Tomato is `color-accent`. Keep them in sync by
+    hand — an SVG in public/ cannot read CSS custom properties. (Token names
+    are written without their leading dashes on purpose: a literal double
+    hyphen is illegal inside an XML comment and makes this file unparseable.)
 
-    Light-only on purpose: OG cards are composited by third parties that do not
-    respect prefers-color-scheme.
+    Wording: the lockup already says "Ode", so the type says only
+    "Engineering". The company and the publication are named once each, which
+    is also why the old "Ode Engineering" string is gone — it was a sub-brand
+    nobody blessed.
+
+    Light-only on purpose: OG cards are composited by third parties that do
+    not respect prefers-color-scheme.
   -->
-  <rect width="1200" height="630" fill="#fdfdfc" />
-  <rect x="0" y="0" width="1200" height="10" fill="#1f4ed8" />
+  <rect width="1200" height="630" fill="#FBFBF8" />
+  <rect x="0" y="0" width="1200" height="10" fill="#CD3E1D" />
 
-  <g transform="translate(96 232)">
-    <circle cx="36" cy="36" r="30" fill="none" stroke="#17181c" stroke-width="10" />
-    <path d="M58 6v60" stroke="#17181c" stroke-width="10" />
+  <!--
+    The Ode lockup, Figma export verbatim, outlined paths, scaled 0.62 from
+    483x97 to 299x60 and set at the 96px margin. Vector in, vector out: it
+    rasterises crisp at any density.
+  -->
+  <g transform="translate(96 150) scale(0.62)" fill="#3C2E2A">
+    <path d="M0 48.2753C0 75.5775 19.7392 89.3527 33.018 96.5505H51.7573C35.7483 88.3599 11.6727 75.7016 11.6727 48.3994V48.1512C11.6727 20.849 35.7483 8.19066 51.7573 0H33.018C19.7392 7.19786 0 20.9731 0 48.2753ZM30.9011 48.2753C30.9011 71.358 49.3994 84.5128 61.8095 96.5505H77.0739C57.8382 78.9282 42.6979 65.4012 42.6979 48.2753C42.6979 31.1493 57.8382 17.6223 77.0739 0H61.8095C49.3994 12.0378 30.9011 25.1925 30.9011 48.2753ZM64.0361 48.2753C64.0361 68.6278 80.921 86.9948 86.3815 96.5505H99.4121C92.0901 85.3815 75.8329 65.5253 75.8329 48.2753C75.8329 31.0252 92.0901 11.1691 99.4121 0H86.3815C80.921 9.55577 64.0361 27.9227 64.0361 48.2753Z" />
+    <path d="M116.367 96.5505H105.367V0H116.367V96.5505Z" />
+    <path d="M221.734 48.2753C221.734 75.5775 201.995 89.3527 188.716 96.5505H169.977C185.986 88.3599 210.062 75.7016 210.062 48.3994V48.1512C210.062 20.849 185.986 8.19066 169.977 0H188.716C201.995 7.19786 221.734 20.9731 221.734 48.2753ZM190.833 48.2753C190.833 71.358 172.335 84.5128 159.925 96.5505H144.66C163.896 78.9282 179.036 65.4012 179.036 48.2753C179.036 31.1493 163.896 17.6223 144.66 0H159.925C172.335 12.0378 190.833 25.1925 190.833 48.2753ZM157.698 48.2753C157.698 68.6278 140.813 86.9948 135.353 96.5505H122.322C129.644 85.3815 145.901 65.5253 145.901 48.2753C145.901 31.0252 129.644 11.1691 122.322 0H135.353C140.813 9.55577 157.698 27.9227 157.698 48.2753Z" />
+    <path d="M426.527 82.0478V13.0527H482.404V24.3252H439.549V40.0677H472.476V51.4373H439.549V70.4839H482.404V82.0478H426.527Z" />
+    <path d="M345.785 82.0478V13.0527H373.675C395.734 13.0527 410.602 25.6856 410.602 47.5503C410.602 69.0262 395.831 82.0478 373.675 82.0478H345.785ZM373.48 24.5195H358.807V70.581H373.48C387.96 70.581 397.289 61.738 397.289 47.5503C397.289 32.8767 387.96 24.5195 373.48 24.5195Z" />
+    <path d="M293.704 83.215C273.006 83.215 257.555 68.2499 257.555 47.5514C257.555 26.8528 273.2 11.8877 293.704 11.8877C314.208 11.8877 329.854 26.8528 329.854 47.5514C329.854 68.1527 314.208 83.215 293.704 83.215ZM293.704 71.3595C307.503 71.3595 316.541 60.7673 316.541 47.5514C316.541 34.4326 307.503 23.7432 293.704 23.7432C280.002 23.7432 270.965 34.4326 270.965 47.5514C270.965 60.8645 279.905 71.3595 293.704 71.3595Z" />
   </g>
 
+  <!--
+    Type: the site's own stack. ABC Diatype is named first so a machine that
+    licenses it renders the real face; nothing self-hosts it and no CDN is
+    loaded, so in practice this rasterises in the sanctioned Helvetica Neue /
+    Helvetica / Arial fallback. Weight stays regular — in this identity
+    hierarchy comes from size, not from bolding.
+  -->
   <text
     x="96"
-    y="392"
-    font-family="Helvetica, Arial, sans-serif"
-    font-size="76"
-    font-weight="700"
-    fill="#17181c"
-  >Ode Engineering</text>
+    y="352"
+    font-family="ABC Diatype, Helvetica Neue, Helvetica, Arial, sans-serif"
+    font-size="104"
+    font-weight="400"
+    letter-spacing="-2"
+    fill="#3C2E2A"
+  >Engineering</text>
 
+  <!--
+    SITE_DESCRIPTION from src/lib/site.ts, verbatim, broken across two lines
+    by hand: SVG <text> does not wrap, and the single line is ~1250px wide at
+    this size against a 1008px content column.
+  -->
   <text
     x="96"
-    y="452"
-    font-family="Helvetica, Arial, sans-serif"
-    font-size="32"
-    fill="#5b5f68"
-  >Engineering notes, architecture decisions, and build logs.</text>
+    y="440"
+    font-family="ABC Diatype, Helvetica Neue, Helvetica, Arial, sans-serif"
+    font-size="34"
+    fill="#625855"
+  >Engineering notes, architecture decisions, and build logs</text>
+  <text
+    x="96"
+    y="486"
+    font-family="ABC Diatype, Helvetica Neue, Helvetica, Arial, sans-serif"
+    font-size="34"
+    fill="#625855"
+  >from the team at Ode.</text>
 
-  <rect x="96" y="510" width="120" height="4" fill="#1f4ed8" />
+  <rect x="96" y="536" width="120" height="6" fill="#CD3E1D" />
 </svg>

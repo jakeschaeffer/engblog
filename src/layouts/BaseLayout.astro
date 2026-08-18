@@ -24,6 +24,7 @@
 import SiteFooter from '@/components/chrome/SiteFooter.astro';
 import SiteHeader from '@/components/chrome/SiteHeader.astro';
 import {
+  BRAND_NAME,
   DEFAULT_OG_IMAGE,
   IS_PRODUCTION_DEPLOY,
   RSS_PATH,
@@ -78,7 +79,11 @@ const socialImageUrl = absoluteUrl(ogImage ?? DEFAULT_OG_IMAGE);
 // Non-production deploys are never indexable.
 const robots = noindex || !IS_PRODUCTION_DEPLOY ? 'noindex, nofollow' : 'index, follow';
 
-// Documents the full page title format in one place.
+// Documents the full page title format in one place. The publication is named
+// "Engineering" and the suffix is the publication, not the company — the Ode
+// lockup in the header carries the company, and a tab that reads
+// "Post title — Engineering" is shorter and no less clear than one that
+// repeats the brand.
 const documentTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
 ---
 
@@ -104,7 +109,11 @@ const documentTitle = title === SITE_NAME ? title : `${title} — ${SITE_NAME}`;
 
     {/* Open Graph */}
     <meta property="og:type" content={ogType} />
-    <meta property="og:site_name" content={SITE_NAME} />
+    {
+      /* The company, not the publication: this is the "who published this"
+        line a social card renders above the title. */
+    }
+    <meta property="og:site_name" content={BRAND_NAME} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={metaDescription} />
     <meta property="og:url" content={canonicalUrl} />

@@ -2,19 +2,76 @@
 /**
  * SiteHeader — the `banner` landmark.
  *
- * A wordmark and two links. It is deliberately not sticky and deliberately not
- * positioned: the skip link is `position: absolute; z-index: var(--z-skip-link)`
- * and must always paint above the chrome, so this element creates no stacking
- * context that could cover it.
+ * A brand lockup on the left and one quiet outbound action on the right. It is
+ * deliberately not sticky and deliberately not positioned: the skip link is
+ * `position: absolute; z-index: var(--z-skip-link)` and must always paint above
+ * the chrome, so this element creates no stacking context that could cover it.
+ *
+ * There is no primary nav. The lockup already goes to `/engineering/`, which is
+ * the only destination a nav could have offered, and the feed link lives in the
+ * footer — a two-item nav where one item was the page you are already on is
+ * chrome for its own sake.
  */
-import SiteNav from '@/components/chrome/SiteNav.astro';
 import { BASE_PATH, SITE_NAME } from '@/lib/site';
+
+/** Marketing site. Absolute by definition: it is a different property. */
+const BRAND_SITE_URL = 'https://ode.com';
 ---
 
 <header class="site-header">
   <div class="container site-header__inner">
-    <a class="site-header__wordmark" href={BASE_PATH}>{SITE_NAME}</a>
-    <SiteNav />
+    <a class="site-header__lockup" href={BASE_PATH}>
+      {
+        /*
+          The Ode lockup — graphic mark + "ODE" letterforms — inlined rather
+          than <img src>, so it inherits `color` from the token below and costs
+          no extra request. This is the brand guide's small-placement tier:
+          the full "with Anthropic" endorsement lockup is for large placements
+          and carries co-branding approval rules; the bare mark is for the
+          smallest (see public/favicon.svg).
+
+          Verbatim Figma export apart from one substitution: every
+          `fill="#3C2E2A"` (Cola) became `fill="currentColor"`, so the artwork
+          is token-driven and can never drift from --color-text.
+
+          Accessibility: `role="img"` + `aria-label="Ode"` names the artwork
+          after the company it depicts, and the sibling text supplies the
+          publication, so the link announces as "Ode" then "Engineering" —
+          two names, each said exactly once, which is also how the header
+          reads visually. Do not label this "Ode logo", and do not repeat
+          "Engineering" here: either makes the link say a word twice.
+        */
+      }
+      <span class="site-header__logo">
+        <svg
+          class="site-header__logo-svg"
+          viewBox="0 0 483 97"
+          role="img"
+          aria-label="Ode"
+          focusable="false"
+        >
+          <path
+            d="M0 48.2753C0 75.5775 19.7392 89.3527 33.018 96.5505H51.7573C35.7483 88.3599 11.6727 75.7016 11.6727 48.3994V48.1512C11.6727 20.849 35.7483 8.19066 51.7573 0H33.018C19.7392 7.19786 0 20.9731 0 48.2753ZM30.9011 48.2753C30.9011 71.358 49.3994 84.5128 61.8095 96.5505H77.0739C57.8382 78.9282 42.6979 65.4012 42.6979 48.2753C42.6979 31.1493 57.8382 17.6223 77.0739 0H61.8095C49.3994 12.0378 30.9011 25.1925 30.9011 48.2753ZM64.0361 48.2753C64.0361 68.6278 80.921 86.9948 86.3815 96.5505H99.4121C92.0901 85.3815 75.8329 65.5253 75.8329 48.2753C75.8329 31.0252 92.0901 11.1691 99.4121 0H86.3815C80.921 9.55577 64.0361 27.9227 64.0361 48.2753Z"
+            fill="currentColor"></path>
+          <path d="M116.367 96.5505H105.367V0H116.367V96.5505Z" fill="currentColor"></path>
+          <path
+            d="M221.734 48.2753C221.734 75.5775 201.995 89.3527 188.716 96.5505H169.977C185.986 88.3599 210.062 75.7016 210.062 48.3994V48.1512C210.062 20.849 185.986 8.19066 169.977 0H188.716C201.995 7.19786 221.734 20.9731 221.734 48.2753ZM190.833 48.2753C190.833 71.358 172.335 84.5128 159.925 96.5505H144.66C163.896 78.9282 179.036 65.4012 179.036 48.2753C179.036 31.1493 163.896 17.6223 144.66 0H159.925C172.335 12.0378 190.833 25.1925 190.833 48.2753ZM157.698 48.2753C157.698 68.6278 140.813 86.9948 135.353 96.5505H122.322C129.644 85.3815 145.901 65.5253 145.901 48.2753C145.901 31.0252 129.644 11.1691 122.322 0H135.353C140.813 9.55577 157.698 27.9227 157.698 48.2753Z"
+            fill="currentColor"></path>
+          <path
+            d="M426.527 82.0478V13.0527H482.404V24.3252H439.549V40.0677H472.476V51.4373H439.549V70.4839H482.404V82.0478H426.527Z"
+            fill="currentColor"></path>
+          <path
+            d="M345.785 82.0478V13.0527H373.675C395.734 13.0527 410.602 25.6856 410.602 47.5503C410.602 69.0262 395.831 82.0478 373.675 82.0478H345.785ZM373.48 24.5195H358.807V70.581H373.48C387.96 70.581 397.289 61.738 397.289 47.5503C397.289 32.8767 387.96 24.5195 373.48 24.5195Z"
+            fill="currentColor"></path>
+          <path
+            d="M293.704 83.215C273.006 83.215 257.555 68.2499 257.555 47.5514C257.555 26.8528 273.2 11.8877 293.704 11.8877C314.208 11.8877 329.854 26.8528 329.854 47.5514C329.854 68.1527 314.208 83.215 293.704 83.215ZM293.704 71.3595C307.503 71.3595 316.541 60.7673 316.541 47.5514C316.541 34.4326 307.503 23.7432 293.704 23.7432C280.002 23.7432 270.965 34.4326 270.965 47.5514C270.965 60.8645 279.905 71.3595 293.704 71.3595Z"
+            fill="currentColor"></path>
+        </svg>
+      </span>
+      <span class="site-header__title">{SITE_NAME}</span>
+    </a>
+
+    <a class="site-header__back" href={BRAND_SITE_URL}>Back to ode.com</a>
   </div>
 </header>
 
@@ -27,23 +84,131 @@ import { BASE_PATH, SITE_NAME } from '@/lib/site';
   .site-header__inner {
     display: flex;
     flex-wrap: wrap;
-    align-items: baseline;
+    align-items: center;
     justify-content: space-between;
-    gap: var(--space-2xs) var(--space-md);
+    /* The column gap is a wrap threshold, not a look: `space-between` sets the
+     * visible distance at every width where the row has slack, so this value
+     * is only ever read at the point the two items stop fitting. --space-sm
+     * keeps the lockup and the button on one line down to 375px, which is
+     * where they sat before the button was restyled; --space-md would give up
+     * that line one device-width early and change nothing else. */
+    gap: var(--space-2xs) var(--space-sm);
     padding-block: var(--space-sm);
   }
 
-  .site-header__wordmark {
+  .site-header__lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
     color: var(--color-text);
-    font-size: var(--text-base);
-    font-weight: var(--weight-semibold);
-    letter-spacing: var(--tracking-tight);
     text-decoration: none;
   }
 
-  .site-header__wordmark:hover {
+  /* Cola on Bone — the guide's default pairing, and the reason the artwork was
+   * rewritten to `currentColor`: the dark colourway belongs on light grounds,
+   * and this is the token that says which dark. */
+  .site-header__logo {
+    display: inline-flex;
     color: var(--color-text);
+  }
+
+  /* Sized by HEIGHT only. `width: auto` keeps the export's 483:97 exactly, so
+   * the lockup can never be squashed; `display: block` kills the inline
+   * baseline gap that would otherwise offset it from the word beside it.
+   *
+   * The clamp is deliberately modest. The lockup is the brand and outweighs
+   * the publication label next to it, but at 390px the row also has to hold
+   * "Back to ode.com": at the 1.125rem floor the lockup is ~90px wide, which
+   * leaves the whole row inside a 358px content box with room to spare. */
+  .site-header__logo-svg {
+    display: block;
+    height: clamp(1.125rem, 0.95rem + 0.9vw, 1.5rem);
+    width: auto;
+  }
+
+  .site-header__title {
+    font-size: var(--text-base);
+    /* Regular-weight brand type: hierarchy comes from size and tracking, not
+     * from bolding. */
+    font-weight: var(--weight-normal);
+    letter-spacing: var(--tracking-tight);
+  }
+
+  .site-header__lockup:hover {
+    color: var(--color-text);
+  }
+
+  .site-header__lockup:hover .site-header__title {
     text-decoration: underline;
     text-decoration-color: var(--color-border-strong);
+  }
+
+  /* The marketing site's nav CTA, rebuilt out of our tokens.
+   *
+   * ode.com's header button (Webflow's `.button` + its "secondary" variant, in
+   * ode-ai-staging.shared.ea5946953.css) is an outline, not a fill: transparent
+   * ground, hairline edge, uppercase mono at 12px/400 with generous tracking,
+   * softly rounded — and on hover the edge and the ink both go to full Cola.
+   * That is the character reproduced here, token for token:
+   *
+   *   ode.com                                    here
+   *   background-color: #0000                    (none — the header ground)
+   *   border: 1px solid cola@20% (~#d5d2cf)      --border-width / --color-border (Slate)
+   *   color: cola@62%                            --color-text  (see below)
+   *   border-radius: .625rem                     --radius-md
+   *   padding: .6rem 1rem                        --space-2xs / --space-xs
+   *   font: mono, .75rem/1em, 400, uppercase     --font-mono / --text-xs / --weight-normal
+   *   letter-spacing: .1em                       --tracking-wide (see below)
+   *   :hover border+color -> Cola                --color-text
+   *   :focus-visible 2px accent, 2px offset      the global ring, unchanged
+   *
+   * Two deliberate departures:
+   *
+   *   - The ink is full Cola, not ode.com's Cola-at-62%. That tint measures
+   *     3.35:1 on Bone and fails AA; global.css already refuses it once, in the
+   *     note on --color-text-subtle, and this is the same refusal. Cola on Bone
+   *     is 12.53:1.
+   *   - Tracking is --tracking-wide (0.04em), not ode.com's 0.1em. Every
+   *     uppercase label on this site is set at --tracking-wide, and one button
+   *     tracked twice as loose as the eyebrows around it would read as an
+   *     import rather than a part of the page. It also keeps the header on one
+   *     line at 390px, which 0.1em does not.
+   *   - Horizontal padding is --space-xs (12px), not ode.com's 1rem. Their
+   *     button sits in a nav with nothing else in it; ours shares a 358px row
+   *     with the brand lockup, and the extra 8px is the difference between the
+   *     header holding one line at 375px and not.
+   *
+   * Slate is a genuinely faint edge (1.36:1 on Bone) — but so is ode.com's, and
+   * it is the nearest thing the palette has to Cola-at-20%. The control is
+   * identified by its label, and hover and focus both resolve to something
+   * emphatic, so nothing depends on seeing the resting hairline.
+   *
+   * `:focus-visible` is not declared here — the global ring in section 6 of
+   * global.css already applies to it, and the accent ring is 4.71:1 against
+   * Bone, well above the 3:1 UI floor. */
+  .site-header__back {
+    display: inline-block;
+    padding: var(--space-2xs) var(--space-xs);
+    border: var(--border-width) solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-normal);
+    line-height: 1;
+    letter-spacing: var(--tracking-wide);
+    text-transform: uppercase;
+    text-decoration: none;
+    /* The label is one unbreakable unit; it must never stack inside the pill. */
+    white-space: nowrap;
+    transition:
+      color var(--duration-fast) var(--easing),
+      border-color var(--duration-fast) var(--easing);
+  }
+
+  /* No fill on hover — ode.com's stays transparent and moves the edge instead. */
+  .site-header__back:hover {
+    border-color: var(--color-text);
+    color: var(--color-text);
   }
 </style>

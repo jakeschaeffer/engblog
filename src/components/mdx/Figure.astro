@@ -130,7 +130,7 @@ const { width, height } = typeof source === 'string' ? parseDimensionHint(source
     border: var(--border);
     border-radius: var(--radius-md);
     /* A neutral ground behind transparent PNGs and SVGs, so a diagram drawn in
-     * dark ink stays readable when the page is in dark mode. */
+     * dark ink never lands on a tinted page ground. */
     background-color: var(--color-surface);
   }
 

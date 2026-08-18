@@ -1,19 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Ode Engineering">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Ode">
   <!--
-    Ode Engineering monogram.
-    A stroked "O" with a single flat cut on the right edge — restrained, reads
-    at 16px, no external references, no embedded fonts.
-    Colours follow the reader's theme via prefers-color-scheme.
+    The Ode graphic mark, on a Bone ground.
+
+    Tier: the brand guide steps the identity down by placement size — the full
+    "Ode with Anthropic" endorsement lockup for large placements, mark + ODE
+    for small ones (that is the site header), and the mark ALONE for the
+    smallest. A favicon is the smallest, so this is the mark alone.
+
+    Colourway: Cola mark on a Bone ground, the guide's default pairing. The
+    ground is not decoration — a transparent Cola mark vanishes against a dark
+    browser chrome or a dark bookmark bar, and the guide sanctions no dark
+    theme and approves no Cola-on-dark pairing, so a `prefers-color-scheme`
+    swap here would mean inventing a brand value. Light only, on purpose.
+
+    Geometry: the mark is 222x97, i.e. 2.29:1, and a favicon is 1:1. The mark
+    is therefore centred in a square with the padding pushed as tight as it
+    usefully goes — 4/256, so the mark spans 97% of the width. That is a tuned
+    number, not a default: the three arcs are separated by only ~20 units out
+    of 222, so at 16px every unit of padding is measurably fewer pixels
+    between them. It was checked by rasterising at 16 and 32 and looking. At
+    32px (which is what a 2x tab shows) the arcs resolve cleanly. At 16px 1x
+    they merge into a lens silhouette with the centre bar still visible; that
+    is the ceiling for a 2.29:1 mark in a 16px square, and scaling further
+    only makes it read as clipped at the sizes where it IS legible.
+    The corner radius costs nothing here because the mark sits in the vertical
+    middle band, where the ground is full width.
+
+    Path data is the Figma export verbatim, translated and scaled as a group.
   -->
-  <style>
-    .bg { fill: #fdfdfc; }
-    .fg { fill: none; stroke: #17181c; }
-    @media (prefers-color-scheme: dark) {
-      .bg { fill: #14151a; }
-      .fg { stroke: #e9eaee; }
-    }
-  </style>
-  <rect class="bg" width="32" height="32" rx="6" />
-  <circle class="fg" cx="16" cy="16" r="8" stroke-width="3" />
-  <path class="fg" d="M16 8v16" stroke-width="3" stroke-linecap="butt" transform="translate(6 0)" />
+  <rect width="256" height="256" rx="48" fill="#FBFBF8" />
+  <g transform="translate(4 73.79) scale(1.1171)" fill="#3C2E2A">
+    <path d="M0 48.2753C0 75.5775 19.7392 89.3527 33.018 96.5505H51.7573C35.7483 88.3599 11.6727 75.7016 11.6727 48.3994V48.1512C11.6727 20.849 35.7483 8.19066 51.7573 0H33.018C19.7392 7.19786 0 20.9731 0 48.2753ZM30.9011 48.2753C30.9011 71.358 49.3994 84.5128 61.8095 96.5505H77.0739C57.8382 78.9282 42.6979 65.4012 42.6979 48.2753C42.6979 31.1493 57.8382 17.6223 77.0739 0H61.8095C49.3994 12.0378 30.9011 25.1925 30.9011 48.2753ZM64.0361 48.2753C64.0361 68.6278 80.921 86.9948 86.3815 96.5505H99.4121C92.0901 85.3815 75.8329 65.5253 75.8329 48.2753C75.8329 31.0252 92.0901 11.1691 99.4121 0H86.3815C80.921 9.55577 64.0361 27.9227 64.0361 48.2753Z" />
+    <path d="M116.367 96.5505H105.367V0H116.367V96.5505Z" />
+    <path d="M221.734 48.2753C221.734 75.5775 201.995 89.3527 188.716 96.5505H169.977C185.986 88.3599 210.062 75.7016 210.062 48.3994V48.1512C210.062 20.849 185.986 8.19066 169.977 0H188.716C201.995 7.19786 221.734 20.9731 221.734 48.2753ZM190.833 48.2753C190.833 71.358 172.335 84.5128 159.925 96.5505H144.66C163.896 78.9282 179.036 65.4012 179.036 48.2753C179.036 31.1493 163.896 17.6223 144.66 0H159.925C172.335 12.0378 190.833 25.1925 190.833 48.2753ZM157.698 48.2753C157.698 68.6278 140.813 86.9948 135.353 96.5505H122.322C129.644 85.3815 145.901 65.5253 145.901 48.2753C145.901 31.0252 129.644 11.1691 122.322 0H135.353C140.813 9.55577 157.698 27.9227 157.698 48.2753Z" />
+  </g>
 </svg>
