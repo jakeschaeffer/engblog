@@ -7,6 +7,11 @@
  *   2. No `prefers-color-scheme` block. The Ode guide sanctions no dark theme,
  *      the site is light-only, and src/styles/contrast.test.ts enforces it.
  *
+ * The one class of literal here is layout sizing — the slider's flex basis and
+ * the number field's width — in rem, matching ExampleCalculator.css and
+ * EvalDotGrid.css. Those are not brand values and global.css defines no token
+ * for them.
+ *
  * The dashboard being recreated is dark and dense. This is neither: it is the
  * same *information architecture* rendered in the site's palette, because a
  * dark panel dropped into a light article would fail every contrast pairing the

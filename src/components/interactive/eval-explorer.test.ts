@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   CATEGORIES,
@@ -10,8 +10,9 @@ import {
   DEFAULT_DETAIL_ITEM_ID,
   EM_DASH,
   ITEM_ID_PREFIX,
+  FORMAT_LOCALE,
   MOCK_ITEMS,
-  SCORED_CATEGORIES,
+  NUMBER_FORMATTERS,
   VIDEO_PATH_PREFIX,
   buildMetricRows,
   categoryMetrics,
@@ -29,7 +30,7 @@ import {
   groupByPrediction,
   hasActivity,
   indexOfItem,
-  isClipVolumeOutOfRange,
+  isClipVolumeAdjusted,
   isCorrect,
   mean,
   meanOfDefined,
@@ -277,10 +278,27 @@ describe('categoryMetrics', () => {
     expect(vehicle.predictedCount).toBe(10);
     expect(vehicle.precision).toBeCloseTo(0.9, 10);
     expect(vehicle.recall).toBeCloseTo(0.9, 10);
+    expect(vehicle.falsePositiveRate).toBeCloseTo(1 / 19, 10);
 
     expect(animal.predictedCount).toBe(3);
     expect(animal.precision).toBeCloseTo(2 / 3, 10);
     expect(animal.recall).toBeCloseTo(2 / 3, 10);
+    expect(animal.falsePositiveRate).toBeCloseTo(1 / 26, 10);
+
+    // The same nine figures as the panel prints them.
+    expect([person.precision, person.recall, person.falsePositiveRate].map(formatPercent)).toEqual([
+      '83.3%',
+      '71.4%',
+      '4.5%',
+    ]);
+    expect(
+      [vehicle.precision, vehicle.recall, vehicle.falsePositiveRate].map(formatPercent),
+    ).toEqual(['90.0%', '90.0%', '5.3%']);
+    expect([animal.precision, animal.recall, animal.falsePositiveRate].map(formatPercent)).toEqual([
+      '66.7%',
+      '66.7%',
+      '3.8%',
+    ]);
   });
 
   it('averages latency and cost over the clips the model put in the group', () => {
@@ -317,21 +335,25 @@ describe('categoryMetrics', () => {
 
 describe('overallMetrics', () => {
   it('macro-averages the three detection categories, ignoring None', () => {
+    // Hand-computed from the mock run's confusion counts, not recomputed from
+    // `categoryMetrics` — averaging the function's own output back over itself
+    // would pass no matter what the function did.
+    //
+    //   Person   TP 5, FP 1, FN 2, TN 21  ->  P 5/6, R 5/7,   FPR 1/22
+    //   Vehicle  TP 9, FP 1, FN 1, TN 18  ->  P 9/10, R 9/10, FPR 1/19
+    //   Animal   TP 2, FP 1, FN 1, TN 25  ->  P 2/3, R 2/3,   FPR 1/26
+    //
+    // Macro = the plain mean of the three, None excluded.
     const overall = overallMetrics(MOCK_ITEMS);
-    const scored = SCORED_CATEGORIES.map((category) => categoryMetrics(MOCK_ITEMS, category));
 
-    expect(overall.precision).toBeCloseTo(
-      scored.reduce((sum, metrics) => sum + metrics.precision, 0) / scored.length,
-      10,
-    );
-    expect(overall.recall).toBeCloseTo(
-      scored.reduce((sum, metrics) => sum + metrics.recall, 0) / scored.length,
-      10,
-    );
-    expect(overall.falsePositiveRate).toBeCloseTo(
-      scored.reduce((sum, metrics) => sum + metrics.falsePositiveRate, 0) / scored.length,
-      10,
-    );
+    expect(overall.precision).toBeCloseTo((5 / 6 + 9 / 10 + 2 / 3) / 3, 10);
+    expect(overall.recall).toBeCloseTo((5 / 7 + 9 / 10 + 2 / 3) / 3, 10);
+    expect(overall.falsePositiveRate).toBeCloseTo((1 / 22 + 1 / 19 + 1 / 26) / 3, 10);
+
+    // The same three numbers as the panel prints them.
+    expect(formatPercent(overall.precision)).toBe('80.0%');
+    expect(formatPercent(overall.recall)).toBe('76.0%');
+    expect(formatPercent(overall.falsePositiveRate)).toBe('4.6%');
   });
 
   it('is not the same as a micro average — a small bad category still counts', () => {
@@ -348,13 +370,16 @@ describe('overallMetrics', () => {
   });
 
   it('averages latency and cost across the whole run', () => {
+    // Totals summed from the mock run once, by hand, and pinned: calling `mean`
+    // over the same array the implementation calls `mean` over would pass
+    // whatever `overallMetrics` chose to average.
     const overall = overallMetrics(MOCK_ITEMS);
 
-    expect(overall.meanLatencySeconds).toBeCloseTo(
-      mean(MOCK_ITEMS.map((item) => item.latencySeconds)),
-      10,
-    );
-    expect(overall.meanCostUsd).toBeCloseTo(mean(MOCK_ITEMS.map((item) => item.costUsd)), 10);
+    expect(overall.itemCount).toBe(29);
+    expect(overall.meanLatencySeconds).toBeCloseTo(60.56 / 29, 10);
+    expect(overall.meanCostUsd).toBeCloseTo(0.069 / 29, 10);
+    expect(formatSeconds(overall.meanLatencySeconds)).toBe('2.1s');
+    expect(formatMicroUsd(overall.meanCostUsd)).toBe('$0.0024');
   });
 
   it('splits cost by whether the clip contained anything', () => {
@@ -430,12 +455,62 @@ describe('formatters', () => {
     }
   });
 
-  it('never emit a locale-dependent separator, whatever the host LANG is', () => {
-    // The formatters pin en-US, so a decimal point is a point and a group
-    // separator is a comma. A comma decimal here would mean a hydration
-    // mismatch on a machine with a European locale.
+  it('are constructed with the pinned locale, never with the host default', async () => {
+    // This is the assertion that bites, and it has to be written at this angle
+    // to bite at all.
+    //
+    // Checking the *output* proves nothing: `formatUsd(1234.5)` is
+    // `'$1,234.50'` on any en-US machine whether the locale is pinned or
+    // inherited. Checking `resolvedOptions().locale` proves nothing either, for
+    // the same reason — CI runs on an en-US box, so an unpinned formatter
+    // resolves to `en-US` and the assertion passes while the islands emit a
+    // comma decimal, and a hydration mismatch, for a reader on a European
+    // locale. The only host-independent question is what argument the module
+    // actually passed to `Intl.NumberFormat`, so this asks that directly.
+    const locales: unknown[] = [];
+    const RealNumberFormat = Intl.NumberFormat;
+    // A `function`, not an arrow: the module calls this with `new`.
+    function RecordingNumberFormat(
+      locale?: Intl.LocalesArgument,
+      options?: Intl.NumberFormatOptions,
+    ): Intl.NumberFormat {
+      locales.push(locale);
+      return new RealNumberFormat(locale, options);
+    }
+    const spy = vi
+      .spyOn(Intl, 'NumberFormat')
+      .mockImplementation(RecordingNumberFormat as unknown as typeof Intl.NumberFormat);
+
+    try {
+      vi.resetModules();
+      await import('./eval-explorer');
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(locales).toHaveLength(5);
+    expect([...new Set(locales)]).toStrictEqual([FORMAT_LOCALE]);
+  });
+
+  it('report the pinned locale back, so nothing silently falls back at runtime', () => {
+    const names = Object.keys(NUMBER_FORMATTERS);
+    expect(names).toHaveLength(5);
+
+    for (const name of names) {
+      const formatter = NUMBER_FORMATTERS[name];
+      if (formatter === undefined) throw new Error(`no formatter named ${name}`);
+      expect([name, formatter.resolvedOptions().locale]).toStrictEqual([name, FORMAT_LOCALE]);
+    }
+  });
+
+  it('put the separators where the pinned locale puts them', () => {
+    // The consequence of the pin: a decimal point is a point and a group
+    // separator is a comma, in every shape the islands render.
     expect(formatPercent(0.5)).toBe('50.0%');
+    expect(formatSeconds(1_234.5)).toBe('1,234.5s');
+    expect(formatPreciseSeconds(1_234.5)).toBe('1,234.50s');
     expect(formatUsd(1_234.5)).toBe('$1,234.50');
+    expect(formatMicroUsd(1_234.5)).toBe('$1,234.5000');
   });
 });
 
@@ -478,16 +553,38 @@ describe('clampClipsPerSubscriber', () => {
   });
 });
 
-describe('isClipVolumeOutOfRange', () => {
-  it('is false inside the range, including both boundaries', () => {
-    expect(isClipVolumeOutOfRange(CLIPS_PER_SUBSCRIBER_MIN)).toBe(false);
-    expect(isClipVolumeOutOfRange(CLIPS_PER_SUBSCRIBER_MAX)).toBe(false);
+describe('isClipVolumeAdjusted', () => {
+  it('is false for a value the clamp leaves alone, including both boundaries', () => {
+    expect(isClipVolumeAdjusted(CLIPS_PER_SUBSCRIBER_MIN)).toBe(false);
+    expect(isClipVolumeAdjusted(CLIPS_PER_SUBSCRIBER_MAX)).toBe(false);
+    expect(isClipVolumeAdjusted(CLIPS_PER_SUBSCRIBER_DEFAULT)).toBe(false);
   });
 
   it('is true outside the range and for a non-number', () => {
-    expect(isClipVolumeOutOfRange(CLIPS_PER_SUBSCRIBER_MIN - 1)).toBe(true);
-    expect(isClipVolumeOutOfRange(CLIPS_PER_SUBSCRIBER_MAX + 1)).toBe(true);
-    expect(isClipVolumeOutOfRange(Number.NaN)).toBe(true);
+    expect(isClipVolumeAdjusted(CLIPS_PER_SUBSCRIBER_MIN - 1)).toBe(true);
+    expect(isClipVolumeAdjusted(CLIPS_PER_SUBSCRIBER_MAX + 1)).toBe(true);
+    expect(isClipVolumeAdjusted(Number.NaN)).toBe(true);
+  });
+
+  it('is true for an in-range value that the step grid moves', () => {
+    // The whole reason this is not a range check: 1234 is legal by range and
+    // still is not what the projection is computed from.
+    expect(clampClipsPerSubscriber(1_234)).toBe(1_250);
+    expect(isClipVolumeAdjusted(1_234)).toBe(true);
+    expect(isClipVolumeAdjusted(1_249)).toBe(true);
+  });
+
+  it('agrees with the clamp for every integer across the range', () => {
+    for (
+      let value = CLIPS_PER_SUBSCRIBER_MIN - 60;
+      value <= CLIPS_PER_SUBSCRIBER_MAX + 60;
+      value += 7
+    ) {
+      expect([value, isClipVolumeAdjusted(value)]).toStrictEqual([
+        value,
+        clampClipsPerSubscriber(value) !== value,
+      ]);
+    }
   });
 });
 
@@ -801,8 +898,19 @@ describe('determinism', () => {
     expect(describeItemDetail(item)).toStrictEqual(describeItemDetail(item));
   });
 
-  it('exposes a dataset that is a constant, not something rebuilt per call', () => {
-    expect(MOCK_ITEMS).toBe(MOCK_ITEMS);
-    expect(JSON.stringify(MOCK_ITEMS)).toBe(JSON.stringify(MOCK_ITEMS));
+  it('builds the same dataset in a second, independent evaluation of the module', async () => {
+    // The real risk is not two calls in one process — it is the *two module
+    // instances* the server bundle and the client bundle each get. Reset the
+    // registry and evaluate the module again from scratch: a different object,
+    // and it has to hold identical data, ids and clip paths included. A `Date`,
+    // a counter or a `Math.random()` anywhere in the derivation fails here.
+    vi.resetModules();
+    const fresh = await import('./eval-explorer');
+
+    expect(fresh.MOCK_ITEMS).not.toBe(MOCK_ITEMS);
+    expect(fresh.MOCK_ITEMS).toStrictEqual(MOCK_ITEMS);
+    expect(fresh.buildMetricRows(fresh.MOCK_ITEMS, 1_500)).toStrictEqual(
+      buildMetricRows(MOCK_ITEMS, 1_500),
+    );
   });
 });

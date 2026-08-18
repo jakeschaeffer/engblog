@@ -55,6 +55,22 @@ export default defineConfig(
     ...reactHooks.configs.flat.recommended,
   },
 
+  // One jsx-a11y rule needs widening rather than disabling. A horizontally
+  // scrolling container has to be focusable or a keyboard-only reader cannot
+  // scroll it (WCAG 2.1.1), and the way to keep that tab stop from announcing
+  // as nothing is to name it: `role="region"` with an `aria-labelledby`. The
+  // rule already ships a `roles` allowlist for exactly this; `tabpanel` is its
+  // default and `region` is the same shape of exception.
+  {
+    files: ['**/*.{jsx,tsx}'],
+    rules: {
+      'jsx-a11y/no-noninteractive-tabindex': [
+        'error',
+        { tags: [], roles: ['tabpanel', 'region'], allowExpressionValues: true },
+      ],
+    },
+  },
+
   // Node-context files (build config, test config) may use Node globals.
   {
     files: ['*.config.{js,mjs,ts}', 'astro.config.mjs', 'vitest.config.ts'],

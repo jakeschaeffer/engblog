@@ -442,6 +442,24 @@ const MICRO_USD_FORMATTER = new Intl.NumberFormat(FORMAT_LOCALE, {
 });
 
 /**
+ * Every formatter in this module, by name.
+ *
+ * Exported for one reason: so a test can ask each one what locale it resolved
+ * to. The pin is the load-bearing hydration guarantee here — the server and the
+ * browser must agree on where the decimal point and the group separator go —
+ * and it cannot be checked through the formatting functions, because a CI box
+ * running `en-US` produces identical output whether the locale is pinned or
+ * left to the host. Nothing else should read this.
+ */
+export const NUMBER_FORMATTERS: Readonly<Record<string, Intl.NumberFormat>> = Object.freeze({
+  percent: PERCENT_FORMATTER,
+  seconds: SECONDS_FORMATTER,
+  preciseSeconds: PRECISE_SECONDS_FORMATTER,
+  usd: USD_FORMATTER,
+  microUsd: MICRO_USD_FORMATTER,
+});
+
+/**
  * A rate as a percentage: `0.7536` -> `"75.4%"`.
  *
  * Undefined rates — precision with no predictions, recall with no ground-truth
@@ -587,8 +605,9 @@ export interface CategoryMetrics {
   readonly meanCostUsd: number;
   /**
    * This group's share of the run's total classification spend, 0–1. Multiplied
-   * by the monthly clip volume it gives the group's slice of the `$/Sub/Mo`
-   * projection, and the slices add up to the overall figure.
+   * by the run's overall `$/Sub/Mo` projection it gives the group's slice of
+   * that projection, and the slices add up to the overall figure. (Multiplying
+   * it by the clip volume instead would give a count of clips, not a cost.)
    */
   readonly costShare: number;
 }
@@ -680,8 +699,11 @@ export const CLIPS_PER_SUBSCRIBER_DEFAULT = 1_500;
 
 /**
  * Coerce arbitrary input into a legal clip volume: non-finite falls back to the
- * default, then round to the step, then clamp. Rounding before clamping means a
- * value just under the ceiling cannot round past it.
+ * default, then round to the step, then clamp. That order matters, and not in
+ * the reassuring direction: rounding first is exactly what lets a value climb —
+ * `4999` rounds up to `5000`, and `5030` rounds up to `5050`, out past the
+ * ceiling. The clamp afterwards is what saves it. Clamping first would not:
+ * the round would then be free to step the clamped value back over the edge.
  */
 export function clampClipsPerSubscriber(value: number): number {
   if (!Number.isFinite(value)) return CLIPS_PER_SUBSCRIBER_DEFAULT;
@@ -692,11 +714,19 @@ export function clampClipsPerSubscriber(value: number): number {
   return stepped;
 }
 
-/** True when a value lies outside the control's range, or is not a number at all. */
-export function isClipVolumeOutOfRange(value: number): boolean {
-  return (
-    !Number.isFinite(value) || value < CLIPS_PER_SUBSCRIBER_MIN || value > CLIPS_PER_SUBSCRIBER_MAX
-  );
+/**
+ * True when `clampClipsPerSubscriber` would return something other than what it
+ * was given — because the value is out of range, because it is off the step
+ * grid, or because it is not a number at all.
+ *
+ * This is deliberately *not* a range check. `clampClipsPerSubscriber` rounds as
+ * well as clamps, so `1234` is inside the range and still comes back as `1250`;
+ * a range check would let the panel compute from `1250` while the field still
+ * reads `1234` and nothing says so. Asking the clamp itself catches both halves
+ * and cannot drift away from it.
+ */
+export function isClipVolumeAdjusted(value: number): boolean {
+  return !Number.isFinite(value) || clampClipsPerSubscriber(value) !== value;
 }
 
 /** Monthly cost per subscriber at a given mean cost per clip. Input is clamped. */

@@ -24,9 +24,12 @@
  *     out one cell at a time.
  *   - Column headers are abbreviated on screen (the dashboard this recreates is
  *     dense) and spelled out for assistive technology.
- *   - The projection sentence under the controls is the `aria-live` region, not
+ *   - The projection sentence under the controls is an `aria-live` region, not
  *     the table: announcing sixteen re-rendered cells on every slider tick
- *     would be unusable.
+ *     would be unusable. The "adjusted" notice is a second one, because it
+ *     appears and disappears while focus stays in the number field.
+ *   - The table's horizontal scroller is a labelled `region` and a tab stop, so
+ *     the right-hand columns can be scrolled into view without a pointer.
  *   - No heading is emitted above `<h4>` — `InteractiveDemoShell` owns the
  *     `<h3>` for the demo.
  */
@@ -45,7 +48,7 @@ import {
   buildMetricRows,
   clampClipsPerSubscriber,
   formatUsd,
-  isClipVolumeOutOfRange,
+  isClipVolumeAdjusted,
   overallMetrics,
   projectCostPerSubscriber,
 } from './eval-explorer';
@@ -120,13 +123,19 @@ export default function EvalMetricsPanel({
   const rangeId = `${baseId}-clips`;
   const numberId = `${baseId}-clips-exact`;
   const hintId = `${baseId}-hint`;
+  const captionId = `${baseId}-caption`;
 
   const rows = buildMetricRows(items, clips);
   const overall = overallMetrics(items);
   const projectionLabel = formatUsd(projectCostPerSubscriber(overall.meanCostUsd, clips));
 
-  const draftNumber = Number(draft);
-  const draftWasAdjusted = draft.trim() !== '' && isClipVolumeOutOfRange(draftNumber);
+  /**
+   * Whether the projection is being computed from something other than what the
+   * field shows. `isClipVolumeAdjusted` asks the clamp, rather than checking the
+   * range: the clamp rounds to the step as well, so `1234` is in range and is
+   * still not the number the projection used.
+   */
+  const draftWasAdjusted = draft.trim() !== '' && isClipVolumeAdjusted(Number(draft));
 
   function commit(value: number): void {
     const next = clampClipsPerSubscriber(value);
@@ -200,11 +209,20 @@ export default function EvalMetricsPanel({
           than a constant.
         </p>
 
-        {draftWasAdjusted && (
-          <p className="eval-metrics__hint eval-metrics__hint--clamped">
-            Adjusted: {draft} is outside the supported range, so {clips} was used instead.
-          </p>
-        )}
+        {/*
+          Its own live region: this notice appears and disappears while focus
+          stays in the number field, so without one a screen-reader user types
+          1234, gets a projection built on 1250, and is never told.
+        */}
+        <div aria-live="polite">
+          {draftWasAdjusted && (
+            <p className="eval-metrics__hint eval-metrics__hint--clamped">
+              Adjusted: {draft} is not a value this control can take — it is rounded to the nearest{' '}
+              {CLIPS_PER_SUBSCRIBER_STEP} clips and held inside the supported range — so {clips} was
+              used instead.
+            </p>
+          )}
+        </div>
       </div>
 
       {/*
@@ -217,10 +235,25 @@ export default function EvalMetricsPanel({
         <strong>{projectionLabel}</strong> per subscriber per month.
       </p>
 
-      <div className="eval-metrics__table-wrap">
-        {/* The <caption> is the table's accessible name; it needs no aria wiring. */}
+      {/*
+        The wrapper scrolls sideways and holds nothing focusable, so a
+        keyboard-only reader could not reach the right-hand columns (WCAG 2.1.1).
+        `tabIndex={0}` makes the scroll container itself a tab stop, and a
+        labelled region is what stops that stop from announcing as nothing.
+
+        This is the documented exception to `no-noninteractive-tabindex`: the
+        rule exists to stop static text becoming a pointless tab stop, and a
+        named scroll container is the one case where the tab stop is the point.
+      */}
+      <div
+        aria-labelledby={captionId}
+        className="eval-metrics__table-wrap"
+        role="region"
+        tabIndex={0}
+      >
         <table className="eval-metrics__table">
-          <caption className="eval-metrics__caption">
+          {/* The <caption> is the table's accessible name, and the wrapper's. */}
+          <caption className="eval-metrics__caption" id={captionId}>
             Detection quality across {overall.itemCount} mock clips. The overall row is
             macro-averaged over Person, Vehicle and Animal, so a small category counts as much as a
             large one.
