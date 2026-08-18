@@ -55,21 +55,22 @@ npm run dev
 ```
 
 `npm run dev` starts Astro's dev server at **http://localhost:4321**. Drafts are
-visible there.
+visible there — and on every Vercel preview deploy. Only the production deploy
+hides them; see [section 6](#6-how-drafts-work).
 
 Every script in `package.json`:
 
-| Script              | Command                                          | What it does / when you run it                                                                                                                                                                                 |
-| ------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run dev`       | `astro dev`                                      | Dev server on `http://localhost:4321`, HMR, drafts visible. Your default loop.                                                                                                                                 |
-| `npm run build`     | `astro build`                                    | Production static build into `dist/`. Drafts excluded. This is what Vercel runs.                                                                                                                               |
-| `npm run preview`   | `astro preview`                                  | Serves the already-built `dist/` locally. Use it to check the real production output (no drafts, no dev-only behaviour).                                                                                       |
-| `npm run typecheck` | `astro sync && tsc --noEmit`                     | TypeScript only. Fast. Run while working on `src/lib/` or a `.tsx` island. `astro sync` first because `tsc` needs the generated `.astro/types.d.ts`, which is gitignored and so is absent on a clean checkout. |
-| `npm run check`     | `astro check`                                    | Astro-aware diagnostics: `.astro` component props, template types, content-collection schema. Catches things `tsc` alone cannot.                                                                               |
-| `npm run lint`      | `eslint .`                                       | ESLint: typescript-eslint, `eslint-plugin-astro`, and the jsx-a11y accessibility rulesets. See section 11.                                                                                                     |
-| `npm run format`    | `prettier --write .`                             | Formats in place, including `.astro` via `prettier-plugin-astro`.                                                                                                                                              |
-| `npm run test`      | `vitest run`                                     | Unit tests over `src/**/*.test.ts` (pure logic only — see `vitest.config.ts`).                                                                                                                                 |
-| `npm run verify`    | all of the above except `dev`/`preview`/`format` | `lint && typecheck && check && test && build`. Run before pushing; it is what CI runs.                                                                                                                         |
+| Script              | Command                                          | What it does / when you run it                                                                                                                                                                                                          |
+| ------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`       | `astro dev`                                      | Dev server on `http://localhost:4321`, HMR, drafts visible. Your default loop.                                                                                                                                                          |
+| `npm run build`     | `astro build`                                    | Static build into `dist/`. This is what Vercel runs. Drafts are **included** unless `VERCEL_ENV=production` is set, so a plain local build has them; run `VERCEL_ENV=production npm run build` to reproduce the real production output. |
+| `npm run preview`   | `astro preview`                                  | Serves the already-built `dist/` locally. Pair it with `VERCEL_ENV=production npm run build` to check the real production output (no drafts, no dev-only behaviour).                                                                    |
+| `npm run typecheck` | `astro sync && tsc --noEmit`                     | TypeScript only. Fast. Run while working on `src/lib/` or a `.tsx` island. `astro sync` first because `tsc` needs the generated `.astro/types.d.ts`, which is gitignored and so is absent on a clean checkout.                          |
+| `npm run check`     | `astro check`                                    | Astro-aware diagnostics: `.astro` component props, template types, content-collection schema. Catches things `tsc` alone cannot.                                                                                                        |
+| `npm run lint`      | `eslint .`                                       | ESLint: typescript-eslint, `eslint-plugin-astro`, and the jsx-a11y accessibility rulesets. See section 11.                                                                                                                              |
+| `npm run format`    | `prettier --write .`                             | Formats in place, including `.astro` via `prettier-plugin-astro`.                                                                                                                                                                       |
+| `npm run test`      | `vitest run`                                     | Unit tests over `src/**/*.test.ts` (pure logic only — see `vitest.config.ts`).                                                                                                                                                          |
+| `npm run verify`    | all of the above except `dev`/`preview`/`format` | `lint && typecheck && check && test && build`. Run before pushing; it is what CI runs.                                                                                                                                                  |
 
 Environment: copy `.env.example` to `.env` if you need to override anything.
 Locally you generally do not — `SITE_URL` falls back to
@@ -106,9 +107,10 @@ Locally you generally do not — `SITE_URL` falls back to
 │   │   ├── BaseLayout.astro     Document shell: head, meta, robots, skip link, chrome
 │   │   └── PostLayout.astro     Article shell: canonical, OG article tags, JSON-LD
 │   ├── lib/
-│   │   ├── site.ts              SITE_URL, BASE_PATH, names, OG default, indexing rule
+│   │   ├── site.ts              SITE_URL, BASE_PATH, names, OG default, indexing + draft rules
 │   │   ├── posts.ts             The only place that queries the collection; draft rule
 │   │   ├── post-utils.ts        Pure logic: sorting, related, prev/next, dates
+│   │   ├── env-utils.ts         Pure build-environment predicates (the draft switch)
 │   │   ├── structured-data.ts   JSON-LD Article builder
 │   │   └── *.test.ts            Vitest unit tests for the pure modules
 │   ├── pages/
@@ -137,7 +139,9 @@ Three structural rules worth knowing:
 - **Nothing calls `getCollection('posts')` except `src/lib/posts.ts`.** That is
   what makes the draft rule hold everywhere at once.
 - **`src/lib/post-utils.ts` imports nothing from `astro:*`**, which is why it
-  can be unit tested in plain Node.
+  can be unit tested in plain Node. `src/lib/env-utils.ts` goes further and
+  imports nothing at all, so `site.ts` can depend on it while `post-utils.ts`
+  depends on `site.ts` — no cycle.
 - **Every public URL is built by `postPath()` / `BASE_PATH` in
   `src/lib/site.ts`, and includes a trailing slash.** See section 3.1.
 
@@ -206,31 +210,67 @@ usage and props are documented in [AUTHORING.md](AUTHORING.md#4-approved-compone
 
 Set `draft: true` in a post's frontmatter (the schema defaults it to `false`).
 
-Verified against `src/lib/posts.ts`, `astro.config.mjs`,
-`src/layouts/PostLayout.astro`, `src/pages/engineering/[slug].astro` and
+Verified against `src/lib/site.ts`, `src/lib/env-utils.ts`, `src/lib/posts.ts`,
+`astro.config.mjs`, `src/layouts/PostLayout.astro`,
+`src/pages/engineering/index.astro`, `src/pages/engineering/[slug].astro` and
 `src/pages/rss.xml.ts`:
 
-- `getVisiblePosts()` returns drafts **only when `import.meta.env.DEV` is
-  true**. Post routes drive `getStaticPaths()` from this helper, so a draft gets
-  a real, readable page in `npm run dev` and **no page at all** in a production
-  build.
-- `getPublishedPosts()` **never** returns drafts. Indexes, RSS, related posts
-  and prev/next all read that helper, so a draft never appears in navigation
-  even in dev.
+- **The switch is `SHOW_DRAFTS` in `src/lib/site.ts`,** which is
+  `import.meta.env.DEV || VERCEL_ENV !== 'production'`. The predicate is
+  `shouldIncludeDrafts()` in `src/lib/env-utils.ts` — a leaf module with no
+  imports, so `site.ts` can use it without the cycle that placing it in
+  `post-utils.ts` would create (`post-utils.ts` imports `SITE_LANG` from
+  `site.ts`). Drafts are hidden on exactly one build: the production Vercel
+  deploy. Dev, preview and branch deploys, CI and a local `npm run build` all
+  render them.
+- `getVisiblePosts()` returns drafts when `SHOW_DRAFTS` is true. Post routes
+  drive `getStaticPaths()` from this helper, so a draft gets a real, readable
+  page in dev and on every preview deploy, and **no page at all** in production.
+- **The index uses `getVisiblePosts()` too**, so `/engineering/` lists exactly
+  the posts this build emitted pages for. A draft is therefore _findable_ on a
+  preview — a reviewer browses to it rather than needing the URL — and the index
+  can never link to something that was not built.
+- `getPublishedPosts()` **never** returns drafts, in any environment. RSS,
+  related posts and prev/next read that helper, so a draft is never syndicated
+  and never sits in the reading path between two published posts.
+- **Drafts are badged.** On a build that renders them, a draft carries a visible
+  "Draft" flag on its index card (`ArticleCard`) and above its title
+  (`ArticleHeader`). It is the word "Draft", not a colour — colour alone is not
+  a signal (AUTHORING.md §6). The badge uses the existing `--color-warning`
+  token, measured in `src/styles/contrast.test.ts`.
 - **Sitemap:** because production `getStaticPaths()` emits no page for a draft,
   `@astrojs/sitemap` cannot list it — the sitemap is generated from pages that
-  were actually built. The `filter` in `astro.config.mjs` (dropping `/404` and
-  `/draft/`) is a backstop, not the mechanism.
+  were actually built. That is the whole mechanism; the `filter` in
+  `astro.config.mjs` only drops `/404`. (It used to also drop `/draft/`, which
+  matched nothing, since no route emits that segment.) On a preview deploy a
+  draft _may_ appear in that build's sitemap, which costs nothing: a
+  non-production deploy never advertises the file — `robots.txt` there is
+  `Disallow: /` with no `Sitemap:` line.
 - **RSS:** `src/pages/rss.xml.ts` reads `getPublishedPosts()`, which excludes
-  drafts in every environment — including `npm run dev`, where a draft has a
-  readable page but still no feed item. Each item's `<link>` is
+  drafts in every environment — including dev and preview deploys, where a draft
+  has a readable, listed page but still no feed item. Each item's `<link>` is
   `absoluteUrl(postPath(post.id))`, the same expression the canonical tag uses,
   so a feed link cannot drift from the page it points at.
 - Additionally, a draft page emits `noindex, nofollow` — `PostLayout.astro`
   passes `noindex={data.draft}` to `BaseLayout`.
 
+### Sharing a draft
+
+Open a pull request; Vercel comments the preview URL. The draft is at its real
+path and listed on the index, so reviewers can just read it.
+
+**Preview deploys sit behind Vercel's Deployment Protection.** Whether a preview
+URL is open to the team, to anyone with the link, or to the public is a setting
+on the Vercel project — this repository cannot control it. The repo's guarantees
+are narrower and hold regardless: a preview is never _indexed_, and production
+never contains the draft at all.
+
 Net effect: a `draft: true` post is safe to merge to `main`. Publishing is
 flipping one boolean.
+
+To reproduce the production behaviour locally, build with the env var Vercel
+sets: `VERCEL_ENV=production npm run build`. The draft's directory will be
+absent from `dist/`.
 
 ---
 
@@ -329,7 +369,10 @@ branch deploys, CI builds and local `astro build` all produce
 `<meta name="robots" content="noindex, nofollow">`, because `VERCEL_ENV` is
 either `preview`/`development` or absent. Only the production Vercel deployment
 emits `index, follow`. A page can additionally opt out by passing
-`noindex={true}` to `BaseLayout`; draft posts do exactly that.
+`noindex={true}` to `BaseLayout`; draft posts do exactly that. Note that drafts
+are _built_ on those same non-production deploys (section 6) — the two rules use
+the same `VERCEL_ENV === 'production'` reading, so anything carrying a draft is
+noindex by construction.
 
 ### `robots.txt` follows the same switch
 
@@ -478,7 +521,9 @@ layouts or CSS. It takes a few minutes.
       on a live post: it must say `index, follow`, not `noindex, nofollow`. If
       it says noindex, `VERCEL_ENV` is not `production`. Then fetch
       `/sitemap-index.xml` and confirm it lists the real post URLs and no
-      drafts.
+      drafts. Drafts are built on preview deploys but never on production, so
+      an unexpected draft URL in the production sitemap means `VERCEL_ENV` is
+      wrong.
 - [ ] **Confirm the ported post's canonical URL points where you want it.**
       Posts migrated from Hashnode: if the Hashnode version stays up, set
       `canonicalUrl` to it; if Hashnode is being retired or redirected, leave

@@ -60,7 +60,7 @@ Every field below comes from `src/content.config.ts`.
 | `updatedAt`    | date                       | no       | unset                                  | Set **only** on a material revision after publication. Emits `article:modified_time`.                                                                                                                          |
 | `authors`      | array of author objects    | **yes**  | —                                      | At least one entry. See the author table below.                                                                                                                                                                |
 | `tags`         | array of non-empty strings | **yes**  | —                                      | At least one. Tags drive related-post scoring (compared case-insensitively), so reuse existing tags.                                                                                                           |
-| `draft`        | boolean                    | no       | `false`                                | `true` = dev-only. See section 8.                                                                                                                                                                              |
+| `draft`        | boolean                    | no       | `false`                                | `true` = built everywhere except production, and badged "Draft" wherever it appears. See section 8.                                                                                                            |
 | `heroImage`    | object                     | no       | unset                                  | `{ src, alt }`, both non-empty. See the hero image table below.                                                                                                                                                |
 | `canonicalUrl` | absolute URL               | no       | this site's URL for the post           | Set when the canonical version lives elsewhere. Overrides `<link rel="canonical">` and `og:url`.                                                                                                               |
 | `hashnodeUrl`  | absolute URL               | no       | unset                                  | **Provenance only. Never rendered publicly.**                                                                                                                                                                  |
@@ -431,12 +431,18 @@ Then open a pull request.
 
 1. **CI runs** `npm ci`, `lint`, `typecheck`, `check`, `test`, `build`
    (`.github/workflows/ci.yml`). A frontmatter typo fails here.
-2. **Vercel builds a preview** for the PR. Preview deployments emit
-   `noindex, nofollow`, so nothing on them can be indexed by search engines.
+2. **Vercel builds a preview** for the PR. Preview deployments build drafts,
+   so a `draft: true` post has a real page there and is listed on
+   `/engineering/`. They also emit `noindex, nofollow` and a `Disallow: /`
+   `robots.txt`, so nothing on them can be indexed by search engines. Who can
+   open a preview URL is governed by Vercel's **Deployment Protection** setting
+   on the project — a preview link is viewable by whoever that protection
+   allows, which is a Vercel setting, not something this repository controls.
 3. **Editorial review happens on the preview URL**, not on the diff. Read the
-   rendered post.
+   rendered post. Share the link with anyone who needs to review it.
 4. **Merge to `main` publishes.** If the post has `draft: true`, merging is
-   safe — it will not appear in production until `draft: false`.
+   safe — the production build does not include it. Publishing is flipping
+   `draft` to `false`.
 
 ### What needs a platform-engineer review
 
@@ -455,17 +461,66 @@ reviewed by an editor. Pull in a platform engineer for anything that touches:
 
 ## 8. Drafts
 
-Set `draft: true` in frontmatter.
+Set `draft: true` in frontmatter. The post is then **built everywhere except
+the production deploy**, which is what lets you share it for review.
 
-- The post **renders in `npm run dev`** at its real URL, so you can preview it.
-- It is **excluded from production builds entirely** — `getVisiblePosts()` in
-  `src/lib/posts.ts` includes drafts only when `import.meta.env.DEV` is true,
-  and the post route's `getStaticPaths()` is driven by that. No page is
-  generated, so there is nothing for the sitemap to include.
-- It never appears in **indexes, related posts, prev/next, or RSS**, even in
-  dev — those read `getPublishedPosts()`, which always drops drafts.
-- A draft page also emits `noindex, nofollow` (`PostLayout.astro` passes
-  `noindex={data.draft}`).
+### Where a draft shows up
+
+| Build                                   | Draft page | Listed on `/engineering/` | In RSS |
+| --------------------------------------- | ---------- | ------------------------- | ------ |
+| `npm run dev`                           | yes        | yes                       | no     |
+| Vercel **preview** (every pull request) | yes        | yes                       | no     |
+| `npm run build` locally, and CI         | yes        | yes                       | no     |
+| Vercel **production**                   | **no**     | **no**                    | no     |
+
+The switch is `VERCEL_ENV === 'production'` and nothing else — see
+`SHOW_DRAFTS` in `src/lib/site.ts`. There is no staging branch and no extra
+Vercel configuration to set up: open a pull request and the draft is on the
+preview deploy.
+
+### Sharing a draft for review
+
+Open a pull request. Vercel comments the preview URL on it; the draft is at its
+real path and is listed on `/engineering/`, so a reviewer can just browse to it.
+
+**Preview deployments sit behind Vercel's Deployment Protection.** Who can open
+that URL — the team only, anyone with the link, or anyone at all — is a setting
+on the Vercel project, not something this repository controls. Check it before
+you treat a preview link as private, and do not put anything in a draft that
+would be a problem if the link were forwarded.
+
+### What keeps a draft out of production
+
+- **No page is built.** `getVisiblePosts()` in `src/lib/posts.ts` drops drafts
+  when `SHOW_DRAFTS` is false, and the post route's `getStaticPaths()` is driven
+  by that helper. Nothing in `dist/`, so nothing to link to, crawl, or list in
+  the sitemap — `@astrojs/sitemap` reads the pages that were actually emitted.
+- **The index agrees with the routes.** `/engineering/` also reads
+  `getVisiblePosts()`, so it lists exactly the posts this build has pages for.
+  It never links to something that was not built.
+
+### On builds that do render a draft
+
+- **It is visibly badged "Draft"** — on its index card and above its title on
+  the post page. In words, not just colour, so a preview cannot be mistaken for
+  a published page.
+- **It is not indexable.** The page emits `noindex, nofollow` (`PostLayout.astro`
+  passes `noindex={data.draft}`), and every non-production deploy is
+  `noindex, nofollow` with `Disallow: /` in `robots.txt` regardless.
+- **It never enters RSS, related posts, or prev/next.** Those read
+  `getPublishedPosts()`, which drops drafts in every environment. A draft is not
+  part of the reading order between finished posts, and it is never syndicated.
+
+### Checking the production behaviour locally
+
+A plain `npm run build` includes drafts, because it is not a production deploy.
+To reproduce what production actually emits, set the variable Vercel sets:
+
+```bash
+VERCEL_ENV=production npm run build
+```
+
+The draft's directory will be absent from `dist/engineering/`.
 
 Merging a draft to `main` is safe. Publishing is a one-line change: flip
 `draft` to `false` and merge.
@@ -474,14 +529,14 @@ Merging a draft to `main` is safe. Publishing is a one-line change: flip
 
 ## 9. Commands
 
-| Command             | What it does                                                  |
-| ------------------- | ------------------------------------------------------------- |
-| `npm run dev`       | Dev server at `http://localhost:4321`. Drafts visible.        |
-| `npm run build`     | Production static build into `dist/`. Drafts excluded.        |
-| `npm run preview`   | Serves the built `dist/` locally.                             |
-| `npm run lint`      | ESLint, including accessibility rules.                        |
-| `npm run typecheck` | `astro sync && tsc --noEmit`.                                 |
-| `npm run check`     | `astro check` — Astro diagnostics and content schema.         |
-| `npm run test`      | Vitest unit tests.                                            |
-| `npm run format`    | Prettier, writes in place.                                    |
-| `npm run verify`    | lint + typecheck + check + test + build. Run before every PR. |
+| Command             | What it does                                                               |
+| ------------------- | -------------------------------------------------------------------------- |
+| `npm run dev`       | Dev server at `http://localhost:4321`. Drafts visible.                     |
+| `npm run build`     | Static build into `dist/`. Includes drafts unless `VERCEL_ENV=production`. |
+| `npm run preview`   | Serves the built `dist/` locally.                                          |
+| `npm run lint`      | ESLint, including accessibility rules.                                     |
+| `npm run typecheck` | `astro sync && tsc --noEmit`.                                              |
+| `npm run check`     | `astro check` — Astro diagnostics and content schema.                      |
+| `npm run test`      | Vitest unit tests.                                                         |
+| `npm run format`    | Prettier, writes in place.                                                 |
+| `npm run verify`    | lint + typecheck + check + test + build. Run before every PR.              |

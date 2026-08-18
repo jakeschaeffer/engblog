@@ -87,19 +87,29 @@ export default defineConfig({
     react(),
     sitemap({
       /**
-       * Draft exclusion.
+       * Drops the 404 page, which is the only built page that should never be
+       * advertised for crawling.
        *
-       * Drafts never reach the sitemap because they are never *built* in
-       * production: `src/lib/posts.ts#getVisiblePosts()` returns drafts only
-       * when `import.meta.env.DEV` is true, and the post route's
-       * `getStaticPaths()` is driven by that helper. A page that does not
-       * exist cannot be emitted into the sitemap.
+       * Drafts need no clause here, and the `/draft/` one that used to sit in
+       * this filter was removed because it matched nothing: no route emits a
+       * `/draft/` segment, so it implied a protection it did not provide.
        *
-       * This filter is therefore defence in depth rather than the primary
-       * mechanism: it drops anything that is deliberately non-indexable even
-       * if a future page starts emitting one.
+       * What actually keeps drafts out of a production sitemap is that they
+       * are not built in production. `src/lib/posts.ts#getVisiblePosts()`
+       * returns drafts only when `SHOW_DRAFTS` is true — never on a
+       * `VERCEL_ENV=production` deploy — and the post route's
+       * `getStaticPaths()` is driven by that helper. `@astrojs/sitemap` reads
+       * the pages that were actually emitted, so a page that does not exist
+       * cannot be listed.
+       *
+       * On the deploys that *do* build drafts, a draft may well appear in
+       * that build's sitemap — which costs nothing, because a non-production
+       * deploy never advertises the file. `src/pages/robots.txt.ts` emits
+       * `Disallow: /` with no `Sitemap:` line off production, and
+       * `src/layouts/BaseLayout.astro` marks every page on such a deploy
+       * `noindex, nofollow`.
        */
-      filter: (page) => !page.includes('/404') && !page.includes('/draft/'),
+      filter: (page) => !page.includes('/404'),
     }),
   ],
 

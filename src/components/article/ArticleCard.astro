@@ -50,6 +50,15 @@ const authorNames = new Intl.ListFormat(SITE_LANG, {
 ---
 
 <article class:list={['card', { 'card--featured': featured }]}>
+  {
+    /*
+    Flags sit above the title in the same slot. A draft is flagged in *text* —
+    the word "Draft" — not by colour alone, so it survives a greyscale print,
+    a colour-vision difference and a screen reader. The ochre only adds
+    emphasis on top of the word. See AUTHORING.md §6.
+  */
+  }
+  {data.draft && <p class="card__flag card__flag--draft">Draft</p>}
   {featured && <p class="card__flag">Featured</p>}
 
   <Heading class="card__title">
@@ -102,6 +111,13 @@ const authorNames = new Intl.ListFormat(SITE_LANG, {
     font-weight: var(--weight-semibold);
     letter-spacing: var(--tracking-wide);
     text-transform: uppercase;
+  }
+
+  /* `--color-warning` on `--color-surface` (the card ground) is 6.40:1, well
+   * clear of AA for this small, bold text — see src/styles/contrast.test.ts.
+   * No new token is introduced. */
+  .card__flag--draft {
+    color: var(--color-warning);
   }
 
   .card__title {

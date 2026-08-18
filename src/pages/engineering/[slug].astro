@@ -4,18 +4,21 @@
  *
  * ## Which post list drives the paths
  *
- * `getVisiblePosts()` — the only place in the codebase that should use it.
- * It returns published posts *plus* drafts when `import.meta.env.DEV` is true,
- * so a draft has a real, previewable page while you are writing it and no page
- * at all in a production build. Nothing else is needed to keep drafts out of
- * production: a page that is never built cannot appear in `dist/`, cannot be
- * crawled, and cannot be picked up by `@astrojs/sitemap` (which reads the pages
- * that were actually emitted). The `filter` in `astro.config.mjs` is a backstop,
- * not the mechanism.
+ * `getVisiblePosts()`, shared with the publication index. It returns published
+ * posts *plus* drafts whenever `SHOW_DRAFTS` is true — the dev server, Vercel
+ * preview and branch deploys, CI, and a local `npm run build` — and published
+ * posts only on the production deploy. So a draft has a real, shareable page
+ * for review, and no page at all in production.
  *
- * Everything a reader could *navigate to* from here — related posts, prev/next —
- * comes from `getPublishedPosts()` instead, so a draft is never linked even in
- * dev, where it would be a link that 404s in production.
+ * Nothing else is needed to keep drafts out of production: a page that is never
+ * built cannot appear in `dist/`, cannot be crawled, and cannot be picked up by
+ * `@astrojs/sitemap`, which reads the pages that were actually emitted.
+ *
+ * Related posts and prev/next come from `getPublishedPosts()` instead. That is
+ * deliberate, and it is *not* a link-resolution concern — on a build that
+ * renders drafts those links would resolve fine. It is editorial: a draft is
+ * not part of the reading path between two finished posts, so a reader walking
+ * the archive with prev/next never lands in something unpublished.
  *
  * ## The param name
  *
@@ -54,7 +57,10 @@ const { post } = Astro.props;
 
 const { Content, headings } = await render(post);
 
-// Navigation targets come from the published list, never the visible one.
+// Navigation targets come from the published list, never the visible one —
+// deliberately, in every environment. Drafts stay out of related posts and
+// prev/next even on a preview deploy, where they do have pages: they are not
+// part of the reading order between published posts.
 const publishedPosts = await getPublishedPosts();
 const related = getRelatedPosts(post, publishedPosts);
 const adjacent = getAdjacentPosts(post, publishedPosts);

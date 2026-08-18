@@ -32,10 +32,13 @@ tags:
 # FIELDS WITH DEFAULTS — safe to leave as-is
 # ---------------------------------------------------------------------------
 
-# true  -> renders in `npm run dev` only; excluded from production builds,
-#          indexes, prev/next, related posts, RSS and the sitemap.
+# true  -> renders (and is listed on /engineering/) in `npm run dev` and on
+#          every Vercel preview deploy, badged "Draft"; excluded from the
+#          production build entirely, and from RSS, prev/next and related
+#          posts in every environment.
 # false -> published.
-# Leave this true until the post is ready to go live.
+# Leave this true until the post is ready to go live. Preview URLs sit behind
+# Vercel's Deployment Protection — see AUTHORING.md section 8.
 draft: true
 
 # Surfaces the post in the "featured" slot on the index. Defaults to false.
@@ -107,9 +110,10 @@ export function greet(name: string): string {
 ```
 
 <Callout type="note" title="Delete this before publishing">
-  This template ships with `draft: true`. Flip it to `false` in the same pull
-  request that adds the finished post, or in a follow-up — either way, the post
-  will not appear in production until it is `false`.
+  This template ships with `draft: true`, so it is readable on the pull
+  request's Vercel preview and marked "Draft" there. Flip it to `false` in the
+  same pull request that adds the finished post, or in a follow-up — either way,
+  the post will not appear in production until it is `false`.
 </Callout>
 
 ## What to do next

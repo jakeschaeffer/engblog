@@ -70,6 +70,18 @@ const heroHeight = heroDimensions?.height ?? FALLBACK_HERO_HEIGHT;
     </a>
   </p>
 
+  {
+    /*
+    Draft badge. Only ever rendered on a build that renders drafts at all —
+    the dev server or a non-production Vercel deploy — because production
+    emits no page for a draft (see src/lib/posts.ts). It sits directly above
+    the title so it is the first thing read after the back link, and it says
+    the word "Draft": colour is emphasis here, never the signal itself
+    (AUTHORING.md §6).
+  */
+  }
+  {data.draft && <p class="article-header__draft">Draft — not published</p>}
+
   <h1 class="article-header__title">{data.title}</h1>
 
   <p class="article-header__standfirst">{data.description}</p>
@@ -160,6 +172,24 @@ const heroHeight = heroDimensions?.height ?? FALLBACK_HERO_HEIGHT;
   .article-header__back a:hover {
     color: var(--color-accent-hover);
     text-decoration-color: currentcolor;
+  }
+
+  /* Chip, matching `.article-header__tag`'s border + pill geometry. The text
+   * is `--color-warning` on the page ground (Bone) at 6.17:1 — comfortably AA,
+   * measured in src/styles/contrast.test.ts — and the border is the standard
+   * one, so no new token is introduced. */
+  .article-header__draft {
+    display: inline-block;
+    margin: 0 0 var(--space-sm);
+    padding: 0 var(--space-2xs);
+    border: var(--border);
+    border-radius: var(--radius-pill);
+    color: var(--color-warning);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    letter-spacing: var(--tracking-wide);
+    line-height: 1.8;
+    text-transform: uppercase;
   }
 
   .article-header__title {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { BASE_PATH, DEFAULT_OG_IMAGE, SITE_URL, absoluteUrl, postPath } from '@/lib/site';
 
@@ -45,5 +45,58 @@ describe('DEFAULT_OG_IMAGE', () => {
    */
   it('is a raster image, not a vector one', () => {
     expect(DEFAULT_OG_IMAGE).toMatch(/\.(png|jpg|jpeg)$/);
+  });
+});
+
+/**
+ * `SHOW_DRAFTS` and `IS_PRODUCTION_DEPLOY` are both resolved once, at module
+ * evaluation, from `import.meta.env` — so a static import would only ever
+ * observe the test runner's own environment. Stubbing the environment and then
+ * re-importing the module (after `vi.resetModules()` drops the cached copy) is
+ * what lets this assert the real wiring rather than restating the predicate.
+ *
+ * The predicate itself is tested directly in `env-utils.test.ts`; what is under
+ * test here is that `site.ts` feeds it the right two inputs.
+ */
+async function loadSite(env: { dev: boolean; vercelEnv?: string }) {
+  vi.stubEnv('DEV', env.dev);
+  if (env.vercelEnv !== undefined) vi.stubEnv('VERCEL_ENV', env.vercelEnv);
+  vi.resetModules();
+  return import('@/lib/site');
+}
+
+describe('SHOW_DRAFTS', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('is false on a production Vercel deploy — the one build that hides drafts', async () => {
+    const site = await loadSite({ dev: false, vercelEnv: 'production' });
+    expect(site.SHOW_DRAFTS).toBe(false);
+    expect(site.IS_PRODUCTION_DEPLOY).toBe(true);
+  });
+
+  it('is true on a preview deploy, which is how drafts get reviewed', async () => {
+    const site = await loadSite({ dev: false, vercelEnv: 'preview' });
+    expect(site.SHOW_DRAFTS).toBe(true);
+    expect(site.IS_PRODUCTION_DEPLOY).toBe(false);
+  });
+
+  it('is true on the dev server', async () => {
+    const site = await loadSite({ dev: true, vercelEnv: 'development' });
+    expect(site.SHOW_DRAFTS).toBe(true);
+  });
+
+  /**
+   * The pairing that matters: nothing can be both indexable and draft-bearing.
+   * A build that emits `index, follow` must not have built a draft.
+   */
+  it('never coincides with an indexable build', async () => {
+    for (const vercelEnv of ['production', 'preview', 'development']) {
+      const site = await loadSite({ dev: false, vercelEnv });
+      expect(site.SHOW_DRAFTS && site.IS_PRODUCTION_DEPLOY).toBe(false);
+      vi.unstubAllEnvs();
+    }
   });
 });
