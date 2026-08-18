@@ -69,7 +69,7 @@ Every script in `package.json`:
 | `npm run check`     | `astro check`                                    | Astro-aware diagnostics: `.astro` component props, template types, content-collection schema. Catches things `tsc` alone cannot.                                                                                                        |
 | `npm run lint`      | `eslint .`                                       | ESLint: typescript-eslint, `eslint-plugin-astro`, and the jsx-a11y accessibility rulesets. See section 11.                                                                                                                              |
 | `npm run format`    | `prettier --write .`                             | Formats in place, including `.astro` via `prettier-plugin-astro`.                                                                                                                                                                       |
-| `npm run test`      | `vitest run`                                     | Unit tests over `src/**/*.test.ts` (pure logic only — see `vitest.config.ts`).                                                                                                                                                          |
+| `npm run test`      | `vitest run`                                     | Unit tests over `src/**/*.test.ts` (pure logic, `node` environment) and `src/**/*.test.tsx` (React islands, jsdom via a per-file `// @vitest-environment jsdom` docblock). See `vitest.config.ts`.                                      |
 | `npm run verify`    | all of the above except `dev`/`preview`/`format` | `lint && typecheck && check && test && build`. Run before pushing; it is what CI runs.                                                                                                                                                  |
 
 Environment: copy `.env.example` to `.env` if you need to override anything.
@@ -98,7 +98,9 @@ Locally you generally do not — `SITE_URL` falls back to
 │   ├── components/
 │   │   ├── article/             Article furniture: header, card, prose wrapper, TOC, footer
 │   │   ├── chrome/              Site-wide header, nav and footer
-│   │   ├── interactive/         React islands + InteractiveDemoShell, its frame
+│   │   ├── interactive/         React islands + InteractiveDemoShell, its frame.
+│   │   │                        Each island is a .tsx + colocated .css + a pure .ts
+│   │   │                        with its own tests. See AUTHORING.md §10.
 │   │   └── mdx/                 Callout, Figure, LinkCard — the approved author surface
 │   ├── content/
 │   │   └── posts/               The posts. One .mdx file per post; filename = slug
@@ -123,7 +125,8 @@ Locally you generally do not — `SITE_URL` falls back to
 │   │   └── 404.astro            `/404` — always noindex, excluded from the sitemap
 │   └── styles/global.css        Brand tokens + global styles. Single source of truth
 ├── tsconfig.json                Strict, extends astro/tsconfigs/strict; `@/*` -> `src/*`
-├── vitest.config.ts             Scoped to pure modules; no `astro:*` imports
+├── vitest.config.ts             Pure modules (node) + React islands (jsdom, per file);
+│                                no `astro:*` imports either way
 ├── .prettierrc                  Formatting rules, incl. prettier-plugin-astro
 ├── .prettierignore              Build output, lockfile, and the verbatim ported post
 ├── .nvmrc                       Node 22
@@ -198,7 +201,10 @@ facing components live in `src/components/mdx/`; React islands live in
 nothing until they scroll to it). Both are application code: they go through
 normal engineering review, they are typechecked and linted like everything else,
 and a new one is documented in AUTHORING.md in the same pull request that adds
-it. Posts must not contain raw `<script>` tags, injected HTML, external embeds,
+it. Islands are testable like everything else: the pure logic in a colocated
+`.ts` and the rendered component in a `.test.tsx` that opts into jsdom.
+AUTHORING.md §10 walks the whole path from a plain Markdown post to a hydrated
+component. Posts must not contain raw `<script>` tags, injected HTML, external embeds,
 or imports from `node_modules`. The reason is blast radius — a post is written
 and reviewed on an editorial track, so the set of things a post can execute has
 to be a reviewed, finite list rather than "whatever MDX allows". Author-facing
@@ -460,10 +466,20 @@ it is the path of least resistance for launch. Whichever it is, set it as
   unlabelled controls, bad ARIA and non-interactive click handlers fail lint.
 - A separate block applies `jsxA11y.flatConfigs.recommended` to
   `**/*.{jsx,tsx}`, so **React islands get the same rules**.
+- `eslint-plugin-react-hooks` (`configs.flat.recommended`) applies to the same
+  `**/*.{jsx,tsx}` files. The Rules of Hooks are not something TypeScript can
+  check, and an island that calls a hook conditionally fails in the reader's
+  browser long after `npm run verify` said yes.
 
-That is the whole automated surface. There is no axe run, no Lighthouse gate,
-no contrast checking in CI. Lint catches static markup mistakes; it cannot
-catch focus order, keyboard traps, contrast, or reflow.
+Lint is not the whole automated surface any more. `npm run test` also runs
+component tests in jsdom (`src/**/*.test.tsx`), which is where focus order,
+roving tabindex, `Esc` behaviour and accessible names are actually asserted —
+see `src/components/interactive/EvalDotGrid.test.tsx` for the worked example.
+
+What is still not automated: there is no axe run, no Lighthouse gate, and no
+contrast checking in CI beyond the token-level `src/styles/contrast.test.ts`.
+Lint and jsdom cannot catch real-viewport reflow, contrast of a rendered
+composite, or how any of it feels with a screen reader.
 
 ### Manual checklist
 
