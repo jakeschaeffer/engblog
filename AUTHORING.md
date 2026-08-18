@@ -341,6 +341,72 @@ primary job; the demo is secondary. Use `client:visible` unless you have a
 documented reason not to (an above-the-fold widget is the usual exception —
 raise it in review).
 
+### EvalMetricsPanel
+
+The summary half of the Detection Eval Explorer: a macro-averaged overall row
+and one row per detection category, over a built-in mock eval run. The
+`$/Sub/Mo` column is a projection, and the assumption behind it — clips per
+subscriber per month — is a slider the reader can move.
+
+```mdx
+import InteractiveDemoShell from '@/components/interactive/InteractiveDemoShell.astro';
+import EvalMetricsPanel from '@/components/interactive/EvalMetricsPanel.tsx';
+
+<InteractiveDemoShell
+  title="Run summary and per-category breakdown"
+  description="Precision, recall, false positive rate, latency and cost for a mock 29-clip run, with the clip-volume assumption behind the $/Sub/Mo projection exposed as a control."
+  sourceHref="https://github.com/jakeschaeffer/engblog/blob/main/src/components/interactive/EvalMetricsPanel.tsx"
+  fallbackSummary="Across 29 mock clips the run macro-averages 80.0% precision, 76.0% recall and a 4.6% false positive rate, at 2.1 seconds per clip. At an assumed 1,500 clips per subscriber per month that projects to $3.57 per subscriber per month."
+>
+  <EvalMetricsPanel client:visible />
+</InteractiveDemoShell>
+```
+
+| Prop                        | Type                  | Required |
+| --------------------------- | --------------------- | -------- |
+| `items`                     | `readonly EvalItem[]` | no       |
+| `initialClipsPerSubscriber` | number                | no       |
+
+`items` defaults to the mock run exported by
+`src/components/interactive/eval-explorer.ts`; there is only one run and it is
+deliberately fake, so a post normally passes nothing.
+`initialClipsPerSubscriber` is clamped to the control's range, so a post cannot
+seed an impossible projection.
+
+### EvalDotGrid
+
+The dot layer of the same explorer: every clip in the run as one small mark,
+grouped by predicted category, with a per-group metric strip. Activating a mark
+expands that clip's full record inline underneath — caption, predicted label
+against ground truth, confidence, objects detected, latency and cost.
+
+Correctness is carried by shape as well as colour (hollow round = correct,
+filled square = incorrect) and named in a visible legend. The field is a single
+tab stop with arrow-key navigation, and `Esc` collapses the record.
+
+```mdx
+import InteractiveDemoShell from '@/components/interactive/InteractiveDemoShell.astro';
+import EvalDotGrid from '@/components/interactive/EvalDotGrid.tsx';
+
+<InteractiveDemoShell
+  title="The dot layer, and one clip opened up"
+  description="Every clip as a single mark, grouped by predicted category. Activate any mark — by click, or with the arrow keys once the field has focus — and that clip's full record expands underneath."
+  sourceHref="https://github.com/jakeschaeffer/engblog/blob/main/src/components/interactive/EvalDotGrid.tsx"
+  fallbackSummary="Five of the 29 clips are wrong, and the field shows where they sit: one in Person, one in Vehicle, one of the three Animal clips, and two clips the model called empty that were not."
+>
+  <EvalDotGrid client:visible />
+</InteractiveDemoShell>
+```
+
+| Prop            | Type                  | Required |
+| --------------- | --------------------- | -------- |
+| `items`         | `readonly EvalItem[]` | no       |
+| `initialItemId` | string                | no       |
+
+`initialItemId` decides which clip's record is open on first render — including
+in the server-rendered HTML, which is why it defaults to a real clip rather than
+to nothing. An id that is not in the run opens nothing instead of throwing.
+
 ---
 
 ## 5. Rules
@@ -354,8 +420,9 @@ These are hard rules, not preferences. CI or review will catch violations.
 3. **No arbitrary package imports inside post MDX.** A post may import approved
    components. It may not import from `node_modules`.
 4. **New interactive components live in `src/components/interactive/`**, are
-   reviewed and tested as application code, and **must be documented in section
-   4 of this file before they are used in a post.**
+   reviewed and tested as application code — pure logic _and_ the rendered
+   component, see section 10 — and **must be documented in section 4 of this
+   file before they are used in a post.**
 5. **Use `client:visible` for expensive islands** unless there is a documented
    reason not to.
 6. **A post must remain understandable when its interactive component does not
@@ -529,14 +596,203 @@ Merging a draft to `main` is safe. Publishing is a one-line change: flip
 
 ## 9. Commands
 
-| Command             | What it does                                                               |
-| ------------------- | -------------------------------------------------------------------------- |
-| `npm run dev`       | Dev server at `http://localhost:4321`. Drafts visible.                     |
-| `npm run build`     | Static build into `dist/`. Includes drafts unless `VERCEL_ENV=production`. |
-| `npm run preview`   | Serves the built `dist/` locally.                                          |
-| `npm run lint`      | ESLint, including accessibility rules.                                     |
-| `npm run typecheck` | `astro sync && tsc --noEmit`.                                              |
-| `npm run check`     | `astro check` — Astro diagnostics and content schema.                      |
-| `npm run test`      | Vitest unit tests.                                                         |
-| `npm run format`    | Prettier, writes in place.                                                 |
-| `npm run verify`    | lint + typecheck + check + test + build. Run before every PR.              |
+| Command             | What it does                                                                 |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `npm run dev`       | Dev server at `http://localhost:4321`. Drafts visible.                       |
+| `npm run build`     | Static build into `dist/`. Includes drafts unless `VERCEL_ENV=production`.   |
+| `npm run preview`   | Serves the built `dist/` locally.                                            |
+| `npm run lint`      | ESLint, including accessibility rules.                                       |
+| `npm run typecheck` | `astro sync && tsc --noEmit`.                                                |
+| `npm run check`     | `astro check` — Astro diagnostics and content schema.                        |
+| `npm run test`      | Vitest: pure-logic tests (`.test.ts`) and island tests (`.test.tsx`, jsdom). |
+| `npm run format`    | Prettier, writes in place.                                                   |
+| `npm run verify`    | lint + typecheck + check + test + build. Run before every PR.                |
+
+---
+
+## 10. From a Markdown post to a custom interactive component
+
+Everything above is the author's surface. This section is the engineer's: how a
+plain Markdown post ends up with a bespoke, hydrated React component in the
+middle of it, and what that component owes the reader.
+
+Work through it in order. The example to copy is the pair
+`EvalDotGrid.tsx` / `eval-explorer.ts` in `src/components/interactive/`.
+
+### 10.1 Decide whether it should be an island at all
+
+An island earns its place when **the reader changes something and the answer
+changes**. A static figure that only ever shows one state is a `<Figure>` — it
+is cheaper, it works with JavaScript off, and it cannot break.
+
+Rule 7 of section 5 is the hard boundary: no authentication, no user data, no
+secrets, no long-running compute, no saved state. This site is a static build
+with no server. If your idea needs a backend, it belongs in a separate
+application, not in a post.
+
+### 10.2 Where the files go
+
+Four files, colocated in `src/components/interactive/`:
+
+```
+src/components/interactive/
+├── MyDemo.tsx          The component: markup, state, event handlers. Nothing else.
+├── MyDemo.css          Colocated styles, imported at the top of MyDemo.tsx.
+├── my-demo.ts          Pure logic: arithmetic, formatting, view models, index maths.
+├── my-demo.test.ts     Vitest over the pure module. Node environment, fast.
+└── MyDemo.test.tsx     Vitest over the component. jsdom, opted in per file.
+```
+
+**Why the logic is a separate file.** Two reasons, and both are load-bearing:
+
+1. **SSR determinism.** An island is server-rendered during `astro build` and
+   then hydrated in the browser. If the two renders disagree, React throws the
+   server HTML away and you get a flash, a layout jump, or a subtly wrong page.
+   Anything non-deterministic — `Date.now()`, `Math.random()`, a locale-default
+   `toLocaleString()`, reading the viewport — is therefore a bug, not a style
+   preference. Keeping the arithmetic and the formatting in a module with no
+   imports and no DOM makes that property something you can _test_.
+2. **Testability.** A pure function is tested with a table of inputs and
+   expected outputs. Assertions about rounding, about macro-averaging, about
+   what an empty dataset does — all of it belongs where it can be checked
+   without rendering anything.
+
+The rule of thumb: **if you are writing a `*`, a `.toFixed()` or a
+`toLocaleString()` inside the `.tsx`, it belongs next door.**
+
+### 10.3 The component itself
+
+Copy the conventions from `ExampleCalculator.tsx`:
+
+- Default export, plus an exported props interface. Every prop optional and
+  documented; a post must not be able to break a page with a bad value, so
+  clamp or fall back rather than throw.
+- No `import React` — the automatic JSX runtime is configured in `tsconfig.json`.
+- `useState` and `useId` only. **No `useEffect`, no timers, no network, no
+  persistence, no analytics.** If you think you need an effect, you probably
+  want a value derived during render. Focus management is the one exception,
+  and it belongs in the event handler that caused the focus change — never in an
+  effect that re-runs.
+- Class names are component-prefixed and BEM-ish (`.my-demo__thing`), because
+  the stylesheet is global once bundled.
+- Styles use **only** the custom properties in `src/styles/global.css`. No hex,
+  no `rgb()`, no invented colours, and **no `prefers-color-scheme` block** —
+  the site is light-only and `src/styles/contrast.test.ts` fails the build if
+  one appears.
+- **Emit no `<h1>`–`<h3>`.** `InteractiveDemoShell` renders the demo's `<h3>`
+  itself, so an island that adds one breaks the article outline. Use `<h4>` or
+  non-heading markup.
+- The pre-hydration HTML must already be correct and complete. Default state is
+  a constant, not something computed from the environment.
+
+### 10.4 Mounting it in a post
+
+Always inside the shell, and always with the client directive on the **island**,
+not on the shell:
+
+```mdx
+import InteractiveDemoShell from '@/components/interactive/InteractiveDemoShell.astro';
+import MyDemo from '@/components/interactive/MyDemo.tsx';
+
+<InteractiveDemoShell
+  title="What this demo shows"
+  description="One sentence on what the reader can change."
+  sourceHref="https://github.com/jakeschaeffer/engblog/blob/main/src/components/interactive/MyDemo.tsx"
+  fallbackSummary="The actual conclusion, in two or three sentences."
+>
+  <MyDemo client:visible />
+</InteractiveDemoShell>
+```
+
+Note the `.tsx` extension in the import — it is required.
+
+`client:visible` defers hydration until the demo scrolls into view, so a reader
+who never reaches it pays nothing. See the note in section 4 for when that is
+the wrong choice.
+
+**The `fallbackSummary` bar.** It renders as plain text for every reader,
+always, hydrated or not. Write the sentence you would have written if the post
+had no demo in it: the conclusion, with the numbers in it. "Interactive demo
+unavailable" is a failure, not a summary. If deleting the island would damage
+the article, the summary is not doing its job.
+
+### 10.5 The accessibility bar
+
+Non-negotiable, and mostly the reason a custom component takes longer than it
+looks:
+
+- **Every control is a real control.** A `<div onClick>` is not a button. Lint
+  will tell you (`jsx-a11y/click-events-have-key-events`,
+  `no-static-element-interactions`, `interactive-supports-focus`), but the
+  reason is that a `<div>` has no name, no role, no keyboard behaviour and no
+  focus ring.
+- **Give every control an accessible name that says something.** "Button" is
+  not a name. `describeDot()` in `eval-explorer.ts` is the pattern: a sentence,
+  generated by a pure function, unit tested.
+- **Do not turn one widget into fifty tab stops.** A grid of items is _one_
+  tab stop with a roving tabindex: arrow keys move between items, `Home`/`End`
+  jump to the ends, and exactly one item has `tabindex="0"` at a time. Put the
+  index arithmetic in the pure module (`nextDotIndex()`) so wrap-around and
+  boundaries are tested rather than hoped for.
+- **`Esc` closes whatever opens**, and focus returns to whatever opened it.
+- **Never encode meaning in colour alone.** Use shape, or a word, or both, and
+  give the reader a legend that names each state. The palette has one accent;
+  it does not have four category colours, and inventing some is not an option.
+- **Visible focus ring on everything.** `global.css` draws it; your job is to
+  leave room so the ring is not clipped or colliding with a neighbour. Never
+  `outline: none` without an equally visible replacement.
+- **320px wide and 200% zoom, with no horizontal _page_ scroll.** Wide content
+  scrolls inside its own container — `.demo__stage` already does this, and a
+  wide table should also carry its own `overflow-x: auto` wrapper.
+- **Reduced motion is handled globally.** Do not add your own media query.
+- A value shown as a bar, a meter or a gauge must also be shown as text.
+
+### 10.6 Testing it
+
+Both halves are testable, and both are expected:
+
+```bash
+npm run test                 # everything
+npx vitest run src/components/interactive/my-demo.test.ts
+```
+
+**Pure logic** (`my-demo.test.ts`) runs in the default `node` environment.
+Import `describe`/`it`/`expect` from `vitest` explicitly — `globals` is off.
+Cover the arithmetic, the formatting, the degradation path (what an empty or
+undefined value renders as), and determinism: the same input must produce the
+same string twice.
+
+**The component** (`MyDemo.test.tsx`) runs in jsdom, opted into per file with a
+docblock on the very first line:
+
+```tsx
+// @vitest-environment jsdom
+import { cleanup, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, it } from 'vitest';
+
+afterEach(() => {
+  cleanup();
+});
+```
+
+That `afterEach` is not optional: Testing Library's automatic cleanup attaches
+itself to a global `afterEach`, and this project runs with `globals: false`, so
+without it every test renders into the previous test's DOM.
+
+Test the things only a DOM can answer: that controls have the accessible names
+you think they have (`getByRole` with a `name`, never a CSS selector), that
+activating something changes the right thing, that `Esc` restores focus, that
+arrow keys move focus and the tab stop follows, and that the component emits no
+heading above `<h4>`. Do not re-test the arithmetic here.
+
+### 10.7 Before you open the pull request
+
+1. `npm run format`, then `npm run verify` — lint, typecheck, `astro check`,
+   tests and a real build, in that order.
+2. Document the component in **section 4 of this file**. Rule 4 of section 5
+   makes that mandatory _before_ it is used in a post.
+3. Read the post with JavaScript disabled. The `fallbackSummary` must carry the
+   point on its own.
+4. Walk section 11 of [README.md](README.md#11-accessibility-qa) — the manual
+   keyboard, zoom and reduced-motion pass. Lint and jsdom do not catch reflow.

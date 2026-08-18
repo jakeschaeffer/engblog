@@ -3,8 +3,7 @@ title: 'There is no such thing as a backend demo: why we build custom UIs for ev
 description: 'Custom UIs stopped being a multi-week detour, which makes building your own eval dashboard a design decision rather than a resourcing one. Here is what we put front and centre on ours, and why work a client cannot see may as well not have happened.'
 publishedAt: 2026-08-18
 authors:
-  - name: 'Ode Engineering'
-    role: 'Engineering'
+  - name: 'Phil'
 tags:
   - 'evals'
   - 'llm'
@@ -13,7 +12,9 @@ draft: true
 featured: false
 ---
 
-import Figure from '@/components/mdx/Figure.astro';
+import InteractiveDemoShell from '@/components/interactive/InteractiveDemoShell.astro';
+import EvalDotGrid from '@/components/interactive/EvalDotGrid.tsx';
+import EvalMetricsPanel from '@/components/interactive/EvalMetricsPanel.tsx';
 
 We do a lot of eval-driven development. Almost every engagement we take on lives or dies on how
 well we can measure a model's behaviour against the real world, and how quickly we can act on what
@@ -85,11 +86,14 @@ On our own eval dashboard, here's what we chose to put front and centre, and why
   cost-per-subscriber number is what actually matters to the business, not the raw dollar figure.
 - **Per-category breakdowns** — the same metrics above, scoped to a single classification category.
 
-<Figure
-  src="/images/there-is-no-such-thing-as-a-backend-demo/eval-ui-full-page.png#1600x1715"
-  alt="A dark eval dashboard titled Detection Eval Explorer: an overall summary row showing $/Sub/Mo, precision, recall, false positive rate, latency and cost, then the same metrics broken out for the Person, Vehicle and Animal categories, with rows of small dots underneath each category."
-  caption="Run summary bar alongside one category's metric row"
-/>
+<InteractiveDemoShell
+  title="Run summary and per-category breakdown"
+  description="The summary row of a Detection Eval Explorer run — $/Sub/Mo, precision, recall, false positive rate, latency and cost — with the same metrics broken out per category underneath. Every figure is computed from a made-up 29-clip run, and the clip-volume assumption behind the $/Sub/Mo projection is a control rather than a constant."
+  sourceHref="https://github.com/jakeschaeffer/engblog/blob/main/src/components/interactive/EvalMetricsPanel.tsx"
+  fallbackSummary="Across 29 mock clips the run macro-averages 80.0% precision, 76.0% recall and a 4.6% false positive rate, at 2.1 seconds per clip. Cost splits sharply on whether anything happened in the clip: $0.0030 for a clip with activity against $0.0009 for an empty one, and $0.0024 averaged across the run. At an assumed 1,500 clips per subscriber per month that projects to $3.57 per subscriber per month — the number a business actually plans against, and the one that moves the moment the volume assumption does. The per-category rows are where the headline stops being reassuring: Vehicle holds 90.0% precision and 90.0% recall, while Animal sits at 66.7% on both, which is exactly the detail a single accuracy figure would have flattened away."
+>
+  <EvalMetricsPanel client:visible />
+</InteractiveDemoShell>
 
 ## Case study: the dot layer
 
@@ -113,11 +117,14 @@ Click any dot and it expands into the full picture for that one item: the actual
 model's caption, predicted label against ground truth, confidence score, objects detected, and that
 item's specific latency and cost.
 
-<Figure
-  src="/images/there-is-no-such-thing-as-a-backend-demo/eval-ui-dot-popup.png#1600x785"
-  alt="The same dashboard with one dot clicked open into a panel: a video player for clip evt-mock-0063, its source path, a predicted output of Person against a ground truth of Animal marked Incorrect, 2.55s latency, and 92.5% confidence."
-  caption="A dot clicked open, showing that item's expanded data — video, caption, predicted label vs. ground truth, confidence, and more"
-/>
+<InteractiveDemoShell
+  title="The dot layer, and one clip opened up"
+  description="Every clip in the run as a single mark, grouped by predicted category: a hollow round mark is a correct prediction, a filled square is a wrong one. Each group carries its own precision, recall, false positive rate and latency. Activate any mark — by click, or with the arrow keys once the field has focus — and that clip's full record expands underneath."
+  sourceHref="https://github.com/jakeschaeffer/engblog/blob/main/src/components/interactive/EvalDotGrid.tsx"
+  fallbackSummary="Five of the 29 clips are wrong, and the field shows where they sit: one in Person, one in Vehicle, one of the three Animal clips, and two clips the model called empty that were not. Opening a mark expands that clip's whole record in place — the model's caption, its predicted label against ground truth, confidence, the objects it reported, and that clip's own latency and cost. The Person group's failure is the case in point: the model captioned an upright figure moving along a fence line, at 92.5% confidence, and the ground truth was an animal. Reading that from a table would mean a filter, a sort and a second tool; here it is one mark and one expansion. The payoff is having the aggregate, the distribution and the single failing clip on one screen — which is the thing owning the front end bought us."
+>
+  <EvalDotGrid client:visible />
+</InteractiveDemoShell>
 
 The payoff is the combination, not either piece alone. The aggregate metric tells you something's
 wrong. The dot grid shows you where. The popup tells you why. All of it lives on one screen, with
