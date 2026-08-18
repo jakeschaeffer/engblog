@@ -9,6 +9,8 @@
  * Brand *text* lives here.
  */
 
+import { shouldIncludeDrafts } from './env-utils';
+
 /**
  * Canonical origin for the deployed site.
  *
@@ -105,6 +107,28 @@ const VERCEL_ENV: string | undefined =
   import.meta.env['VERCEL_ENV'] ?? process.env['VERCEL_ENV'] ?? undefined;
 
 export const IS_PRODUCTION_DEPLOY: boolean = VERCEL_ENV === 'production';
+
+/**
+ * Whether this build renders posts marked `draft: true`.
+ *
+ * The same `VERCEL_ENV` reading that drives `IS_PRODUCTION_DEPLOY`, applied to
+ * a second question: drafts are built everywhere *except* the production
+ * deploy. That is what lets a draft be reviewed on the pull request's Vercel
+ * preview URL without a staging branch or any extra project configuration.
+ *
+ * The predicate itself lives in `./env-utils` so it can be unit tested without
+ * a build environment; this constant is just the resolved answer for *this*
+ * build. `src/lib/posts.ts` is the only consumer — see the draft rule there.
+ *
+ * Preview deploys carrying drafts are not public by virtue of this flag alone:
+ * every non-production page is `noindex, nofollow` and `robots.txt` says
+ * `Disallow: /`, and who can open a preview URL at all is governed by Vercel's
+ * Deployment Protection setting on the project, not by this repository.
+ */
+export const SHOW_DRAFTS: boolean = shouldIncludeDrafts({
+  dev: import.meta.env.DEV,
+  vercelEnv: VERCEL_ENV,
+});
 
 /** Resolve a site-relative path to an absolute URL string. */
 export function absoluteUrl(path: string): string {

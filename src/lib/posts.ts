@@ -7,19 +7,29 @@
  *
  * ## The draft rule
  *
- * Drafts are visible in `astro dev` and invisible in a production build:
+ * Drafts are built everywhere except the production deploy — the dev server,
+ * Vercel preview and branch deploys, CI and a local `npm run build` all render
+ * them. `SHOW_DRAFTS` in `@/lib/site` is the resolved answer for this build.
  *
- *   - `getVisiblePosts()` includes drafts when `import.meta.env.DEV` is true.
- *     Route `getStaticPaths()` should be driven by this, so a draft gets a real
- *     page you can preview locally.
- *   - `getPublishedPosts()` never includes drafts. Indexes, RSS, related-posts
- *     and prev/next should use this, so drafts never leak into navigation even
- *     in dev.
+ *   - `getVisiblePosts()` includes drafts when `SHOW_DRAFTS` is true. Route
+ *     `getStaticPaths()` is driven by this, so a draft gets a real page you can
+ *     open and share on a preview URL.
+ *   - `getPublishedPosts()` never includes drafts, in any environment. RSS,
+ *     related posts and prev/next use this, so a draft is never syndicated and
+ *     never becomes a neighbour of a published post.
  *
- * Because production `getStaticPaths()` emits no page for a draft, the draft
- * cannot appear in `@astrojs/sitemap` output either — the sitemap is generated
- * from the pages that were actually built. That is the whole draft-exclusion
- * mechanism; the `filter` in astro.config.mjs is only a backstop.
+ * The publication index uses `getVisiblePosts()`, so wherever a draft is listed
+ * it also has a page: the index never links to a URL this build did not emit.
+ *
+ * Production exclusion is structural rather than cosmetic. `getStaticPaths()`
+ * emits no page for a draft in production, so there is nothing in `dist/` to
+ * link to, crawl, or pick up in `@astrojs/sitemap` output — the sitemap is
+ * generated from the pages that were actually built.
+ *
+ * Draft pages that *are* built carry a visible "Draft" badge (`ArticleCard`,
+ * `ArticleHeader`) and `noindex, nofollow` (`PostLayout` passes
+ * `noindex={data.draft}`, and every non-production page is noindex anyway), so
+ * a preview cannot be mistaken for a published page.
  */
 
 import { getCollection, type CollectionEntry } from 'astro:content';
@@ -35,6 +45,7 @@ import {
   toISODateTime,
   type AdjacentPosts,
 } from './post-utils';
+import { SHOW_DRAFTS } from './site';
 
 /** A single entry in the `posts` collection. */
 export type Post = CollectionEntry<'posts'>;
@@ -43,10 +54,11 @@ export type Post = CollectionEntry<'posts'>;
 export type PostData = Post['data'];
 
 /**
- * All non-draft posts, newest first.
+ * All non-draft posts, newest first. Never includes drafts, in any build.
  *
- * Use for indexes, RSS, related posts, prev/next — anywhere a reader could be
- * sent to a URL that must exist in production.
+ * Use for RSS, related posts and prev/next — anywhere a draft would be
+ * syndicated, or would sit in the reading path between two published posts.
+ * The index deliberately does *not* use this; see `getVisiblePosts()`.
  */
 export async function getPublishedPosts(): Promise<Post[]> {
   const all = await getCollection('posts');
@@ -56,12 +68,13 @@ export async function getPublishedPosts(): Promise<Post[]> {
 /**
  * Posts that should have a page generated for them, newest first.
  *
- * In dev this is published posts *plus* drafts. In a production build it is
- * exactly `getPublishedPosts()`.
+ * Published posts *plus* drafts on every build except the production deploy,
+ * where it is exactly `getPublishedPosts()`. Use it for `getStaticPaths()` and
+ * for the index, which must agree with it about what exists.
  */
 export async function getVisiblePosts(): Promise<Post[]> {
   const all = await getCollection('posts');
-  const visible = import.meta.env.DEV ? [...all] : excludeDrafts(all);
+  const visible = SHOW_DRAFTS ? [...all] : excludeDrafts(all);
   return sortByPublishedAtDesc(visible);
 }
 

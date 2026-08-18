@@ -5,12 +5,22 @@
  *
  * ## Which post list this uses
  *
- * `getPublishedPosts()`, deliberately — **not** `getVisiblePosts()`. The index
- * is navigation: every link on it must resolve in production. `getVisiblePosts()`
- * exists for `getStaticPaths()`, where a draft *should* get a previewable page
- * in dev; surfacing that draft in the index would mean the dev index and the
- * production index disagree about what exists, and it would put a link on the
- * page that 404s once deployed. So drafts are previewed by URL, never listed.
+ * `getVisiblePosts()`, deliberately — the same helper that drives the article
+ * route's `getStaticPaths()`. That pairing is the point: the index lists
+ * exactly the posts this build emitted a page for, so every link on it
+ * resolves. On the production deploy that is the published posts and nothing
+ * else; on a preview deploy or in `npm run dev` it also includes drafts, which
+ * are built there and so are safe to link.
+ *
+ * Listing drafts is what makes review-by-preview work — a reviewer finds the
+ * draft by browsing rather than by being handed a URL. Each draft card carries
+ * a visible "Draft" flag (see `ArticleCard`), and the whole preview deploy is
+ * `noindex, nofollow` with `Disallow: /` in `robots.txt`, so a listed draft is
+ * neither mistakable for a published post nor crawlable.
+ *
+ * `getPublishedPosts()` still governs RSS, related posts and prev/next: those
+ * are syndication and reading order, where a draft does not belong even on a
+ * build that renders it.
  *
  * ## Outline
  *
@@ -23,10 +33,10 @@
  */
 import ArticleCard from '@/components/article/ArticleCard.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import { getPublishedPosts } from '@/lib/posts';
+import { getVisiblePosts } from '@/lib/posts';
 import { RSS_PATH, SITE_DESCRIPTION, SITE_NAME } from '@/lib/site';
 
-const posts = await getPublishedPosts();
+const posts = await getVisiblePosts();
 const hasPosts = posts.length > 0;
 ---
 
