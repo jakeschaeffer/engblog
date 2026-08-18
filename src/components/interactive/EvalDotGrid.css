@@ -1,0 +1,396 @@
+/* =============================================================================
+ * EvalDotGrid — colocated styles for the dot-layer island.
+ *
+ * Same house rules as ExampleCalculator.css:
+ *   1. Every colour, radius, spacing, type and duration value is a custom
+ *      property from src/styles/global.css. There is no hex, no rgb(), no
+ *      hsl() and no hand-picked colour anywhere in this file.
+ *   2. No `prefers-color-scheme` block. The site is light-only and
+ *      src/styles/contrast.test.ts enforces that.
+ *
+ * The one class of literal here is layout sizing — grid track minimums and the
+ * meter width — in rem, matching ExampleCalculator.css. Those are not brand
+ * values and global.css defines no token for them.
+ *
+ * THE TWO MARKS
+ * -------------
+ * Correct is a hollow round mark drawn in --color-border-strong (3.93:1 on the
+ * card ground, 3.24:1 on the sunken ground: above the 3:1 floor for a non-text
+ * boundary on both). Incorrect is a *filled square* in --color-danger. They
+ * differ in shape, in fill and in lightness, so the distinction survives
+ * greyscale, colour blindness and a bad projector — and the legend names both
+ * in words regardless.
+ * ========================================================================== */
+
+.eval-dots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 100%;
+}
+
+/* -----------------------------------------------------------------------------
+ * Header: the legend, and a standing reminder that the run is invented.
+ * -------------------------------------------------------------------------- */
+
+.eval-dots__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+}
+
+.eval-dots__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+}
+
+.eval-dots__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+}
+
+.eval-dots__badge {
+  margin: 0;
+  padding: var(--space-3xs) var(--space-2xs);
+  background-color: var(--color-surface-sunken);
+  border: var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* -----------------------------------------------------------------------------
+ * The marks
+ * -------------------------------------------------------------------------- */
+
+.eval-dots__mark {
+  display: inline-block;
+  flex: none;
+  inline-size: var(--space-sm);
+  block-size: var(--space-sm);
+}
+
+.eval-dots__mark--correct {
+  background-color: transparent;
+  border: var(--border-width-thick) solid var(--color-border-strong);
+  border-radius: var(--radius-pill);
+}
+
+.eval-dots__mark--incorrect {
+  background-color: var(--color-danger);
+  border: var(--border-width-thick) solid var(--color-danger);
+  border-radius: var(--radius-xs);
+}
+
+/* -----------------------------------------------------------------------------
+ * Groups
+ *
+ * Category is carried by the group and its heading — never by a colour. The
+ * rule above each card is the same neutral line on all four for exactly that
+ * reason. One column at 320px, more as the stage allows.
+ * -------------------------------------------------------------------------- */
+
+.eval-dots__groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-sm);
+}
+
+.eval-dots__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  padding: var(--space-sm);
+  background-color: var(--color-surface);
+  border: var(--border);
+  border-block-start: var(--border-width-thick) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+}
+
+.eval-dots__group-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-normal);
+  line-height: var(--leading-snug);
+}
+
+.eval-dots__group-count {
+  padding: 0 var(--space-2xs);
+  background-color: var(--color-surface-sunken);
+  border-radius: var(--radius-pill);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The four-metric strip under each group heading. */
+.eval-dots__strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4.5rem, 1fr));
+  gap: var(--space-3xs) var(--space-2xs);
+  margin: 0;
+  padding-block: var(--space-2xs);
+  border-block: var(--border);
+}
+
+.eval-dots__strip-item dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.eval-dots__strip-item dd {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -----------------------------------------------------------------------------
+ * The dot field
+ *
+ * Gaps are --space-xs (12px) around a 16px mark inside a --space-3xs padded
+ * button: the hit target is 24px, and the 2px focus ring at 2px offset clears
+ * its neighbours instead of colliding with them.
+ * -------------------------------------------------------------------------- */
+
+.eval-dots__field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.eval-dots__field-item {
+  display: flex;
+}
+
+.eval-dots__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xs);
+  background-color: transparent;
+  border: 0;
+  border-radius: var(--radius-pill);
+  transition: background-color var(--duration-fast) var(--easing);
+}
+
+.eval-dots__dot:hover {
+  background-color: var(--color-surface-sunken);
+}
+
+/* The open clip's mark. A ring *and* a filled ground, so the selected state is
+ * never carried by colour alone and never confused with the focus ring. */
+.eval-dots__dot[aria-expanded='true'] {
+  background-color: var(--color-surface-sunken);
+}
+
+.eval-dots__dot[aria-expanded='true'] .eval-dots__mark {
+  box-shadow: 0 0 0 var(--border-width-thick) var(--color-text);
+}
+
+.eval-dots__dot:focus-visible {
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* -----------------------------------------------------------------------------
+ * The detail panel
+ *
+ * Inline, below the field — not a modal. It expands the page instead of
+ * covering it, which is what makes it usable at 320px and at 200% zoom without
+ * a focus trap or a scroll lock.
+ * -------------------------------------------------------------------------- */
+
+.eval-dots__detail {
+  padding: var(--space-md);
+  background-color: var(--color-surface-sunken);
+  border: var(--border);
+  border-radius: var(--radius-md);
+}
+
+.eval-dots__detail-empty {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  text-wrap: pretty;
+}
+
+.eval-dots__detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  margin-block-end: var(--space-sm);
+}
+
+.eval-dots__detail-title {
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-normal);
+  line-height: var(--leading-snug);
+}
+
+.eval-dots__close {
+  padding: var(--space-3xs) var(--space-2xs);
+  background-color: var(--color-surface);
+  border: var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-hover);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  transition: background-color var(--duration-fast) var(--easing);
+}
+
+.eval-dots__close:hover {
+  background-color: var(--color-accent-subtle);
+}
+
+.eval-dots__detail-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-sm);
+  align-items: start;
+}
+
+/* The stand-in for the clip. Deliberately not a play button: nothing here
+ * plays, and an affordance that lies is worse than no affordance. */
+.eval-dots__still {
+  margin: 0;
+}
+
+.eval-dots__still-frame {
+  inline-size: 100%;
+  block-size: auto;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.eval-dots__still-frame rect {
+  fill: var(--color-surface);
+  stroke: var(--color-border-strong);
+  stroke-width: var(--border-width);
+}
+
+.eval-dots__still-frame path {
+  stroke: var(--color-border);
+  stroke-width: var(--border-width);
+}
+
+.eval-dots__still-caption {
+  margin-block-start: var(--space-3xs);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  text-wrap: pretty;
+}
+
+.eval-dots__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-sm);
+  margin: 0;
+}
+
+.eval-dots__fact--wide {
+  grid-column: 1 / -1;
+}
+
+.eval-dots__fact dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+
+.eval-dots__fact dd {
+  margin: 0;
+  margin-block-start: var(--space-3xs);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  overflow-wrap: break-word;
+}
+
+.eval-dots__figure {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.eval-dots__path {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  /* A long s3:// path wraps inside the panel rather than widening the page. */
+  overflow-wrap: anywhere;
+}
+
+.eval-dots__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+  padding: var(--space-3xs) var(--space-2xs);
+  background-color: var(--color-surface);
+  border: var(--border);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  line-height: 1;
+}
+
+/* The verdict pills carry the word first; the mark beside it repeats the field's
+ * shape language, and the border weight is the third cue. */
+.eval-dots__pill--correct {
+  border: var(--border-width) solid var(--color-border-strong);
+}
+
+.eval-dots__pill--incorrect {
+  border: var(--border-width-thick) solid var(--color-danger);
+  color: var(--color-accent-hover);
+}
+
+/* The confidence meter is decoration — `aria-hidden`, with the percentage
+ * rendered as text beside it. A bar alone would be a value nobody can read. */
+.eval-dots__meter {
+  display: block;
+  inline-size: 100%;
+  block-size: var(--space-2xs);
+  margin-block-end: var(--space-3xs);
+  background-color: var(--color-surface);
+  border: var(--border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.eval-dots__meter-fill {
+  display: block;
+  block-size: 100%;
+  background-color: var(--color-border-strong);
+}

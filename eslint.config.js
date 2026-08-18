@@ -11,12 +11,16 @@
 //      controls, bad ARIA and non-interactive click handlers fail `npm run lint`.
 //
 // Note: `flat/jsx-a11y-recommended` covers .astro templates only. React island
-// .tsx files are covered by the explicit jsx-a11y block at the bottom.
+// .tsx files are covered by the explicit jsx-a11y block at the bottom, which
+// also turns on eslint-plugin-react-hooks: the Rules of Hooks are not
+// enforceable by TypeScript, and an island that calls a hook conditionally
+// fails at runtime in the browser, long after `npm run verify` said yes.
 
 import js from '@eslint/js';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import astro from 'eslint-plugin-astro';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
+import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
@@ -40,6 +44,15 @@ export default defineConfig(
       ...jsxA11y.flatConfigs.recommended.languageOptions,
       globals: globals.browser,
     },
+  },
+
+  // …and the Rules of Hooks, plus the React Compiler's correctness lints
+  // (purity, refs-in-render, state-in-render). Islands are the only React in
+  // this codebase, so the plugin is scoped to JSX files rather than applied
+  // globally.
+  {
+    files: ['**/*.{jsx,tsx}'],
+    ...reactHooks.configs.flat.recommended,
   },
 
   // Node-context files (build config, test config) may use Node globals.
