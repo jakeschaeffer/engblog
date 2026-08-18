@@ -390,6 +390,22 @@ describe('EvalDotGrid — keyboard navigation', () => {
     expect(screen.getByRole('heading', { name: `Clip ${DEFAULT_DETAIL_ITEM_ID}` })).toBeDefined();
   });
 
+  it('leaves the panel open when Escape arrives as part of a chord on the close button', async () => {
+    // The close button follows the same rule as the marks: a chord is the
+    // browser's or the OS's, so Ctrl+Escape must not collapse the panel.
+    const user = userEvent.setup();
+    render(<EvalDotGrid />);
+
+    await user.click(dotFor('evt-mock-0019'));
+    const close = screen.getByRole('button', { name: /^Close/ });
+    close.focus();
+
+    await user.keyboard('{Control>}{Escape}{/Control}');
+
+    expect(screen.getByRole('heading', { name: 'Clip evt-mock-0019' })).toBeDefined();
+    expect(document.activeElement).toBe(close);
+  });
+
   it('opens a clip from the keyboard alone', async () => {
     const user = userEvent.setup();
     render(<EvalDotGrid />);

@@ -307,6 +307,9 @@ export default function EvalDotGrid({
                   collapse(indexOfItem(items, detail.item.id));
                 }}
                 onKeyDown={(event) => {
+                  // Same rule as the marks: a chord belongs to the browser or
+                  // the OS, so Ctrl+Escape and friends pass straight through.
+                  if (event.ctrlKey || event.metaKey || event.altKey) return;
                   if (event.key !== 'Escape') return;
                   event.preventDefault();
                   collapse(indexOfItem(items, detail.item.id));
